@@ -82,6 +82,7 @@ The first launch will create a virtual environment and install PySide6.
 | **Status** | start/stop, mode (daemon / systemd), log |
 | **Configuration** | strategy, interface, backend, GameFilter |
 | **Strategies** | list of `.bat`, download dependencies |
+| **Update** | version check and app update |
 | **Service** | autostart, status, logs |
 | **Autotune** | strategy selection (experimental) |
 | **Permissions** | NOPASSWD for passwordless operation |

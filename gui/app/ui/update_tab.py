@@ -15,6 +15,11 @@ from ..updater import APP_VERSION, CheckWorker, git_pull_cmd, is_newer
 from ..worker import CommandWorker
 from .widgets import add_row, make_button, make_card, make_title
 
+DEFAULT_NOTES = (
+    "Обновление содержит исправления и улучшения.\n"
+    "Подробный список изменений — в CHANGELOG.md репозитория."
+)
+
 
 class UpdateTab(QWidget):
     go_to_tab = Signal()
@@ -114,7 +119,7 @@ class UpdateTab(QWidget):
         self.latest_tag = tag
         self.latest_notes = notes
         self.latest_value.setText(tag or "—")
-        self.notes_view.setPlainText(notes or "")
+        self.notes_view.setPlainText(notes or DEFAULT_NOTES)
         if is_newer(tag):
             self.status_label.setText(f"✓ доступна новая версия {tag}")
             self.update_btn.setEnabled(True)
@@ -147,7 +152,7 @@ class UpdateTab(QWidget):
         notes = QPlainTextEdit()
         notes.setObjectName("logView")
         notes.setReadOnly(True)
-        notes.setPlainText(self.latest_notes or "")
+        notes.setPlainText(self.latest_notes or DEFAULT_NOTES)
         notes.setMinimumHeight(180)
         layout.addWidget(notes)
 
