@@ -2,6 +2,8 @@
 
 # 🎧 InIProject — Zapret GUI for Linux
 
+**Русский** · [English](README_EN.md)
+
 ### Графический интерфейс для обхода замедления YouTube и Discord
 
 GUI-обёртка (PySide6) вокруг [zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux). Не содержит собственной логики обхода — весь функционал выполняют существующие скрипты адаптера.
@@ -20,6 +22,8 @@ GUI-обёртка (PySide6) вокруг [zapret-discord-youtube-linux](https:/
 [Sergeydigl3/zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux).
 Скрипт управляет тем же CLI (`service.sh`), что и оригинальный порт: запуск/остановка,
 конфигурация, системный сервис, загрузка зависимостей и автоподбор стратегий — без работы в терминале.
+
+**Протестировано на:** Arch Linux
 
 **Это форк порта на Linux.** Исходные стратегии принадлежат проекту
 [Flowseal](https://github.com/Flowseal/zapret-discord-youtube), ядро — проекту
