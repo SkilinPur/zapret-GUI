@@ -377,6 +377,31 @@ QDialogButtonBox QPushButton {
     min-width: 88px;
 }
 
+QMenu {
+    background-color: #1a1a1e;
+    color: #d1d1d1;
+    border: 1px solid #26262b;
+    border-radius: 8px;
+    padding: 6px;
+}
+
+QMenu::item {
+    padding: 8px 22px;
+    border-radius: 6px;
+    color: #d1d1d1;
+}
+
+QMenu::item:selected {
+    background-color: #2d2d33;
+    color: #ffffff;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #26262b;
+    margin: 6px 8px;
+}
+
 QToolTip {
     background-color: #141417;
     color: #d1d1d1;

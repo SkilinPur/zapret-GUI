@@ -6,10 +6,11 @@
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QListWidget, QMainWindow, QStackedWidget,
-    QVBoxLayout, QWidget,
+    QSystemTrayIcon, QVBoxLayout, QWidget,
 )
 
 from .zapret import Zapret
+from .tray import install_tray, make_icon
 from .ui.autotune_tab import AutotuneTab
 from .ui.config_tab import ConfigTab
 from .ui.credits_tab import CreditsTab
@@ -40,9 +41,13 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.zapret = Zapret()
         self._tabs = []
+        self._really_quit = False
         self._build_ui()
         self.setWindowTitle("InIProject — Zapret Discord YouTube")
         self.resize(960, 640)
+        self.setWindowIcon(make_icon())
+
+        self._tray = install_tray(self)
 
         QTimer.singleShot(1200, self._auto_check_updates)
 
@@ -146,7 +151,28 @@ class MainWindow(QMainWindow):
             if refresh is not None:
                 refresh()
 
+    def show_from_tray(self):
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def quit_from_tray(self):
+        self._really_quit = True
+        self.close()
+
     def closeEvent(self, event):
+        # Если есть трей — закрытие прячет окно, zapret продолжает работать.
+        # По-настоящему выйти можно из трея: «Завершить программу».
+        if self._tray is not None and not self._really_quit:
+            event.ignore()
+            self.hide()
+            self._tray.showMessage(
+                "Zapret Discord YouTube",
+                "Программа свернута в трей. ЛКМ по иконке — меню.",
+                QSystemTrayIcon.Information,
+                3000,
+            )
+            return
         for tab in self._tabs:
             if hasattr(tab, "daemon") and tab.daemon and tab.daemon.isRunning():
                 tab.daemon.terminate()
