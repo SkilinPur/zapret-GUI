@@ -84,6 +84,14 @@ class ConfigTab(QWidget):
 
     # ------------------------------------------------------------------
 
+    def refresh_strategies(self):
+        current = self.strategy_combo.currentText()
+        self.strategy_combo.clear()
+        self.strategy_combo.addItems(self.z.strategies())
+        idx = self.strategy_combo.findText(current)
+        if idx >= 0:
+            self.strategy_combo.setCurrentIndex(idx)
+
     def load_config(self):
         cfg = self.z.read_config()
 

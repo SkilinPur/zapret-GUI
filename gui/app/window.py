@@ -44,6 +44,8 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+
     def _build_ui(self):
         central = QWidget()
         central.setObjectName("rootWidget")
@@ -139,6 +141,9 @@ class MainWindow(QMainWindow):
     def _change_tab(self, row):
         if 0 <= row < len(self._tabs):
             self.stack.setCurrentIndex(row)
+            refresh = getattr(self._tabs[row], "refresh_strategies", None)
+            if refresh is not None:
+                refresh()
 
     def closeEvent(self, event):
         for tab in self._tabs:
