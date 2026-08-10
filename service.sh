@@ -54,6 +54,10 @@ case "${1:-}" in
         shift
         handle_desktop_command "$@"
         ;;
+    gui)
+        shift
+        "$HOME_DIR_PATH/gui/gui.sh" "$@"
+        ;;
     run)
         shift
         run_zapret_command "$@"

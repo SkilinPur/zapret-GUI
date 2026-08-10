@@ -14,6 +14,7 @@ show_usage() {
     echo "    strategy       Manage strategies"
     echo "    download-deps  Download/update dependencies (zapret + strategies)"
     echo "    desktop        Manage desktop shortcut"
+    echo "    gui            Launch the graphical interface (PySide6)"
     echo "    run            Run interactively (without installing service)"
     echo "    setup-permissions  Setup NOPASSWD for nft/iptables/nfqws"
     echo
@@ -50,6 +51,7 @@ show_menu() {
     echo "5) Управление ярлыком на рабочем столе"
     echo "6) Настроить работу без пароля"
     echo "7) Сменить режим ipset [Текущий - $(get_mode_ipset)]"
+    echo "8) Запустить GUI"
     echo "0) Выход"
     echo "=============================================================================="
     echo ""
@@ -63,6 +65,7 @@ show_menu() {
     5) show_desktop_menu ;;
     6) setup_permissions || show_error "Не удалось настроить разрешения" ;;
     7) change_mode_ipset "$(get_mode_ipset)" || show_error "Не удалось сменить режим ipset" ;;
+    8) "$BASE_DIR/gui/gui.sh" || show_error "Не удалось запустить GUI" ;;
     0) exit 0 ;;
     *) show_error "Неверный выбор" ;;
     esac
