@@ -18,12 +18,14 @@ from .ui.permissions_tab import PermissionsTab
 from .ui.service_tab import ServiceTab
 from .ui.status_tab import StatusTab
 from .ui.strategies_tab import StrategiesTab
+from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
     ("Как пользоваться", HelpTab),
     ("Статус", StatusTab),
     ("Конфигурация", ConfigTab),
     ("Стратегии", StrategiesTab),
+    ("Обновление", UpdateTab),
     ("Сервис", ServiceTab),
     ("Автоподбор", AutotuneTab),
     ("Права", PermissionsTab),
@@ -42,7 +44,15 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("InIProject — Zapret Discord YouTube")
         self.resize(960, 640)
 
+        QTimer.singleShot(1200, self._auto_check_updates)
+
     # ------------------------------------------------------------------
+
+    def _auto_check_updates(self):
+        for tab in self._tabs:
+            if isinstance(tab, UpdateTab):
+                tab.check_now(show_dialog=True)
+                break
 
     # ------------------------------------------------------------------
 
@@ -136,6 +146,8 @@ class MainWindow(QMainWindow):
             tab = tab_cls(self.zapret)
             self._tabs.append(tab)
             self.stack.addWidget(tab)
+            if isinstance(tab, UpdateTab):
+                tab.go_to_tab.connect(lambda: self._change_tab(self._tabs.index(tab)))
         return self.stack
 
     def _change_tab(self, row):

@@ -52,6 +52,12 @@ QMainWindow, #rootWidget {
     font-size: 13px;
 }
 
+#valueLabel {
+    color: #e53935;
+    font-size: 14px;
+    font-weight: bold;
+}
+
 #cursorLabel {
     color: #e53935;
     font-size: 16px;
