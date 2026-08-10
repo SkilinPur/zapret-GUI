@@ -125,12 +125,33 @@ stop_nfqws() {
 # Работа со стратегиями
 # -----------------------------------------------------------------------------
 
+# Обеспечивает наличие пользовательских списков (*-user.txt) в каталоге стратегий.
+# nfqws запускается из $REPO_DIR и обращается к lists/*-user.txt; этих файлов нет
+# в git, поэтому их создают здесь. Файлы живут в $BASE_DIR/user-lists и
+# хардлинкуются в $REPO_DIR/lists, чтобы правки пользователя видел и nfqws.
+ensure_user_lists() {
+    local user_lists_dir="$BASE_DIR/user-lists"
+    local list_dir="$REPO_DIR/lists"
+
+    mkdir -p "$list_dir" "$user_lists_dir"
+
+    local f user_file
+    for f in ipset-exclude-user.txt list-general-user.txt list-exclude-user.txt; do
+        user_file="$user_lists_dir/$f"
+        touch "$user_file"
+        chmod 644 "$user_file"
+        # Хардлинк (не симлинк!); если не выходит (разные ФС) — копируем
+        if ! ln -f "$user_file" "$list_dir/$f" 2>/dev/null; then
+            cp -f "$user_file" "$list_dir/$f" 2>/dev/null || true
+        fi
+    done
+}
+
 # Настройка репозитория со стратегиями
 # Требует: REPO_DIR, REPO_URL, MAIN_REPO_REV, BASE_DIR, INTERACTIVE_MODE (опционально)
 # Аргументы:
 #   $1 - версия (коммит/тег/ветка), по умолчанию MAIN_REPO_REV
 setup_repository() {
-    local user_lists_dir="$BASE_DIR/user-lists"
     local version="${1:-$MAIN_REPO_REV}"
     local tmp_dir
 
@@ -197,20 +218,7 @@ setup_repository() {
     fi
 
     # Обеспечиваем наличие пользовательских списков
-    if [[ -d "$REPO_DIR/lists" ]]; then
-        mkdir -p "$user_lists_dir"
-        touch "$user_lists_dir/ipset-exclude-user.txt"
-        touch "$user_lists_dir/list-general-user.txt"
-        touch "$user_lists_dir/list-exclude-user.txt"
-        chmod 644 "$user_lists_dir/ipset-exclude-user.txt" \
-                  "$user_lists_dir/list-general-user.txt" \
-                  "$user_lists_dir/list-exclude-user.txt"
-
-        # Хардлинки (не симлинки!) чтобы обойти проблемы с доступом к /home/user
-        for file in "$user_lists_dir"/*; do
-            ln -f "$file" "$REPO_DIR/lists/" 2>/dev/null || true
-        done
-    fi
+    ensure_user_lists
 
     rm -rf "$tmp_dir"
     log "Стратегии обновлены в $REPO_DIR"
@@ -429,6 +437,10 @@ parse_bat_file() {
 start_nfqws() {
     log "Запуск процесса nfqws..."
     stop_nfqws
+
+    # nfqws ссылается на lists/*-user.txt из $REPO_DIR — гарантируем их наличие
+    ensure_user_lists
+
     cd "$REPO_DIR" || handle_error "Не удалось перейти в директорию $REPO_DIR"
 
     local full_params=(

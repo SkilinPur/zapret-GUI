@@ -2,6 +2,11 @@
 
 Все заметные изменения проекта. Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
 
+## [1.0.10] — 2026-08-11
+
+### Исправлено
+- Запуск zapret больше не падает с «cannot access ipset file 'lists/ipset-exclude-user.txt'», если `zapret-latest` получен через git pull (пользовательских файлов `lists/*-user.txt` в git нет). Перед запуском nfqws теперь гарантированно создаются списки `ipset-exclude-user.txt`, `list-general-user.txt`, `list-exclude-user.txt` (хардлинк из `user-lists`, с копированием как запасным вариантом).
+
 ## [1.0.9] — 2026-08-11
 
 ### Исправлено
