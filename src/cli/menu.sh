@@ -13,6 +13,8 @@ show_usage() {
     echo "    config         Manage configuration"
     echo "    strategy       Manage strategies"
     echo "    download-deps  Download/update dependencies (zapret + strategies)"
+    echo "    update-strategies  Update strategies only (bundled by default)"
+    echo "    download-nfqws  Download/update the nfqws binary only"
     echo "    desktop        Manage desktop shortcut"
     echo "    gui            Launch the graphical interface (PySide6)"
     echo "    run            Run interactively (without installing service)"

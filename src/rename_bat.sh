@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Директория для обработки
-TARGET_DIR="zapret-latest"
+# Директория для обработки (по умолчанию zapret-latest, можно переопределить)
+TARGET_DIR="${TARGET_DIR:-zapret-latest}"
 
 # Функция для транслитерации русских символов в латинские
 transliterate() {

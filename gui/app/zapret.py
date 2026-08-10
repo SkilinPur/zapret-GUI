@@ -157,6 +157,15 @@ class Zapret:
     def download_deps_cmd(self):
         return self._cmd(["download-deps", "--default"])
 
+    def update_strategies_cmd(self):
+        return self._cmd(["update-strategies"])
+
+    def download_nfqws_cmd(self):
+        return self._cmd(["download-nfqws"])
+
+    def nfqws_present(self):
+        return (self.repo_root / "nfqws").exists()
+
     def setup_permissions_cmd(self):
         return self._cmd(["setup-permissions"])
 

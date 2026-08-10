@@ -50,6 +50,12 @@ case "${1:-}" in
         shift
         handle_download_deps_command "$@"
         ;;
+    update-strategies)
+        handle_download_deps_command -s "$MAIN_REPO_REV"
+        ;;
+    download-nfqws)
+        handle_download_deps_command -z "$ZAPRET_RECOMMENDED_VERSION"
+        ;;
     desktop)
         shift
         handle_desktop_command "$@"

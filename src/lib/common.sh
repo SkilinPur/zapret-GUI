@@ -132,69 +132,78 @@ stop_nfqws() {
 setup_repository() {
     local user_lists_dir="$BASE_DIR/user-lists"
     local version="${1:-$MAIN_REPO_REV}"
+    local tmp_dir
 
-    if [ -d "$REPO_DIR" ]; then
-        # В интерактивном режиме спрашиваем подтверждение
-        if [[ "${INTERACTIVE_MODE:-false}" == "true" ]]; then
-            log "Обнаружен существующий репозиторий стратегий."
-            read -p "Удалить существующий репозиторий и загрузить заново? [y/N]: " confirm
-            if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-                log "Использование существующей версии репозитория."
-                return 0
-            fi
+    # В интерактивном режиме спрашиваем подтверждение на обновление
+    if [ -d "$REPO_DIR" ] && [[ "${INTERACTIVE_MODE:-false}" == "true" ]]; then
+        log "Обнаружен существующий репозиторий стратегий."
+        read -p "Удалить существующий репозиторий и загрузить заново? [y/N]: " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            log "Использование существующей версии репозитория."
+            return 0
         fi
-
-        if [[ -d "$REPO_DIR/lists" && -d "$user_lists_dir" ]]; then
-            log "Копирование lists"
-            rm -f "$user_lists_dir"/*
-            cp "$REPO_DIR/lists"/* "$user_lists_dir/"  
-        fi
-        log "Удаление существующего репозитория..."
-        rm -rf "$REPO_DIR"
     fi
 
-    log "Клонирование репозитория (версия: $version)..."
+    log "Клонирование стратегий (версия: $version)..."
+    tmp_dir=$(mktemp -d)
 
     # Проверяем, является ли версия хешем коммита (40 символов hex)
     if [[ "$version" =~ ^[0-9a-f]{40}$ ]]; then
         # Для хеша коммита клонируем весь репозиторий и делаем checkout
-        git clone "$REPO_URL" "$REPO_DIR" || \
+        timeout 180 git clone "$REPO_URL" "$tmp_dir/strategies" || {
+            rm -rf "$tmp_dir"
             handle_error "Ошибка при клонировании репозитория"
+        }
 
-        cd "$REPO_DIR" || handle_error "Не удалось перейти в директорию $REPO_DIR"
-        git checkout "$version" || \
+        (cd "$tmp_dir/strategies" && git checkout "$version") || {
+            rm -rf "$tmp_dir"
             handle_error "Ошибка при переключении на коммит '$version'. Проверьте, что коммит существует."
-        cd - > /dev/null
+        }
     else
         # Для тега или ветки используем shallow clone
-        git clone --branch "$version" --depth 1 "$REPO_URL" "$REPO_DIR" || \
+        timeout 180 git clone --branch "$version" --depth 1 "$REPO_URL" "$tmp_dir/strategies" || {
+            rm -rf "$tmp_dir"
             handle_error "Ошибка при клонировании репозитория. Проверьте, что версия '$version' существует."
+        }
     fi
 
+    # Переименовываем bat-файлы во временном клоне
     chmod +x "$BASE_DIR/src/rename_bat.sh"
-    rm -rf "$REPO_DIR/.git"
-    "$BASE_DIR/src/rename_bat.sh" || handle_error "Ошибка при переименовании файлов"
+    TARGET_DIR="$tmp_dir/strategies" "$BASE_DIR/src/rename_bat.sh" || {
+        rm -rf "$tmp_dir"
+        handle_error "Ошибка при переименовании файлов"
+    }
 
-    # Создаём пользовательские списки (только если в стратегиях есть директория lists)
+    # Обновляем на месте только нужные файлы: bat-стратегии и списки.
+    # Каталог не удаляется, чтобы не задеть файлы комплекта и пользовательские списки.
+    mkdir -p "$REPO_DIR"
+    rm -f "$REPO_DIR"/*.bat
+    cp "$tmp_dir/strategies"/*.bat "$REPO_DIR/" 2>/dev/null || true
+
+    if [[ -d "$tmp_dir/strategies/lists" ]]; then
+        mkdir -p "$REPO_DIR/lists"
+        # Пользовательские списки (*-user.txt) не перезаписываем
+        cp "$tmp_dir/strategies/lists"/*.txt "$REPO_DIR/lists/" 2>/dev/null || true
+    fi
+
+    # Обеспечиваем наличие пользовательских списков
     if [[ -d "$REPO_DIR/lists" ]]; then
-        local user_lists_dir="$BASE_DIR/user-lists"
         mkdir -p "$user_lists_dir"
-
-        # Создаем lists (touch не перезаписывает файлы если они существовали)
         touch "$user_lists_dir/ipset-exclude-user.txt"
         touch "$user_lists_dir/list-general-user.txt"
         touch "$user_lists_dir/list-exclude-user.txt"
+        chmod 644 "$user_lists_dir/ipset-exclude-user.txt" \
+                  "$user_lists_dir/list-general-user.txt" \
+                  "$user_lists_dir/list-exclude-user.txt"
 
-        # Делаем файлы читаемыми для всех (nfqws запускается под nobody)
-        chmod 644 "$user_lists_dir/ipset-exclude-user.txt"
-        chmod 644 "$user_lists_dir/list-general-user.txt"
-        chmod 644 "$user_lists_dir/list-exclude-user.txt"
-
-        # Создаём хардлинки (не симлинки!) чтобы обойти проблемы с доступом к /home/user
+        # Хардлинки (не симлинки!) чтобы обойти проблемы с доступом к /home/user
         for file in "$user_lists_dir"/*; do
             ln -f "$file" "$REPO_DIR/lists/" 2>/dev/null || true
         done
     fi
+
+    rm -rf "$tmp_dir"
+    log "Стратегии обновлены в $REPO_DIR"
 }
 
 # Проверка и создание конфига (helper для install_service и desktop)
