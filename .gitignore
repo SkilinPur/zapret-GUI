@@ -1,4 +1,5 @@
 zapret-latest/bin
+/bin
 user-lists
 conf.env
 nfqws

@@ -150,6 +150,60 @@ ensure_user_lists() {
     done
 }
 
+# Обеспечивает наличие шаблонов поддельных пакетов bin/*.bin в каталоге стратегий.
+# Стратегии ссылаются на %BIN%quic_initial_*.bin и %BIN%tls_clienthello_*.bin, но
+# этих файлов нет ни в git-клоне стратегий (Flowseal), ни в архиве релиза zapret.
+# Оригиналы лежат в bol-van/zapret в files/fake. Копии кешируются в $BASE_DIR/bin,
+# чтобы при повторных запусках не качать заново.
+ensure_bin_files() {
+    local bin_dir="$REPO_DIR/bin"
+    local cache_dir="$BASE_DIR/bin"
+    local zapret_ref="${ZAPRET_BIN_REF:-$ZAPRET_RECOMMENDED_VERSION}"
+    local base_url="https://raw.githubusercontent.com/bol-van/zapret/${zapret_ref}/files/fake"
+
+    mkdir -p "$bin_dir" "$cache_dir"
+
+    # Имена, которых нет в files/fake zapret: подставляем шаблон того же типа.
+    local -A alias_map=(
+        [quic_initial_dbankcloud_ru.bin]=quic_initial_www_google_com.bin
+        [tls_clienthello_max_ru.bin]=tls_clienthello_www_google_com.bin
+        [tls_clienthello_4pda_to.bin]=tls_clienthello_www_google_com.bin
+    )
+
+    local name file source
+    for name in quic_initial_www_google_com.bin quic_initial_dbankcloud_ru.bin \
+                tls_clienthello_www_google_com.bin tls_clienthello_max_ru.bin \
+                tls_clienthello_4pda_to.bin stun.bin; do
+        file="$bin_dir/$name"
+        [[ -s "$file" ]] && continue
+
+        # 1) Кеш: сначала прямой файл, затем алиас к нему
+        source="${alias_map[$name]:-$name}"
+        if [[ -s "$cache_dir/$source" ]]; then
+            cp -f "$cache_dir/$source" "$file" && continue
+        fi
+
+        # 2) Алиас: берём уже готовый шаблон того же типа (quic_/tls_clienthello_)
+        if [[ -n "${alias_map[$name]}" ]]; then
+            local like
+            if [[ "$name" == quic_* ]]; then
+                like="quic_initial_www_google_com.bin"
+            else
+                like="tls_clienthello_www_google_com.bin"
+            fi
+            if [[ -s "$bin_dir/$like" || -s "$cache_dir/$like" ]]; then
+                cp -f "${bin_dir}/$like" "$file" 2>/dev/null || cp -f "$cache_dir/$like" "$file"
+                continue
+            fi
+        fi
+
+        # 3) Скачиваем оригинал из bol-van/zapret
+        if curl -fsSL --max-time 30 "$base_url/$source" -o "$cache_dir/$source" 2>/dev/null; then
+            cp -f "$cache_dir/$source" "$file"
+        fi
+    done
+}
+
 # Настройка репозитория со стратегиями
 # Требует: REPO_DIR, REPO_URL, MAIN_REPO_REV, BASE_DIR, INTERACTIVE_MODE (опционально)
 # Аргументы:
@@ -222,6 +276,8 @@ setup_repository() {
 
     # Обеспечиваем наличие пользовательских списков
     ensure_user_lists
+    # Обеспечиваем наличие шаблонов поддельных пакетов (bin/*.bin)
+    ensure_bin_files
 
     rm -rf "$tmp_dir"
     log "Стратегии обновлены в $REPO_DIR"
@@ -443,6 +499,8 @@ start_nfqws() {
 
     # nfqws ссылается на lists/*-user.txt из $REPO_DIR — гарантируем их наличие
     ensure_user_lists
+    # nfqws ссылается на bin/*.bin из $REPO_DIR — гарантируем их наличие
+    ensure_bin_files
 
     cd "$REPO_DIR" || handle_error "Не удалось перейти в директорию $REPO_DIR"
 

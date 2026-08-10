@@ -2,6 +2,11 @@
 
 Все заметные изменения проекта. Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
 
+## [1.0.12] — 2026-08-11
+
+### Исправлено
+- Демон падал при запуске с «could not read bin/quic_initial_www_google_com.bin». Шаблоны поддельных пакетов `bin/*.bin` (quic_initial_*, tls_clienthello_*, stun) не было откуда взять: их нет ни в git-клоне стратегий, ни в архиве релиза zapret. Теперь при запуске (и при скачивании зависимостей) они автоматически скачиваются из `files/fake` репозитория bol-van/zapret и кешируются в `bin/`. Для имён, которых нет в zapret (`quic_initial_dbankcloud_ru.bin`, `tls_clienthello_max_ru.bin`, `tls_clienthello_4pda_to.bin`), подставляются шаблоны того же типа.
+
 ## [1.0.11] — 2026-08-11
 
 ### Исправлено

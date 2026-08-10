@@ -140,6 +140,9 @@ download_nfqws() {
         return 0
     fi
 
+    # Шаблоны поддельных пакетов (bin/*.bin), которых нет в архиве релиза
+    ensure_bin_files
+
     log "Бинарник nfqws успешно загружен" >&2
 }
 
