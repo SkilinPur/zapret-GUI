@@ -66,7 +66,7 @@ class ServiceTab(QWidget):
 
         for btn in (self.install_btn, self.remove_btn, self.start_btn,
                     self.stop_btn, self.restart_btn):
-            btn.setFixedWidth(130)
+            btn.setMinimumWidth(130)
         rl.addWidget(self.install_btn)
         rl.addWidget(self.remove_btn)
         rl.addWidget(self.start_btn)
@@ -105,7 +105,7 @@ class ServiceTab(QWidget):
         self.desktop_install_btn = make_button("Установить ярлык")
         self.desktop_remove_btn = make_button("Удалить ярлык")
         for btn in (self.desktop_install_btn, self.desktop_remove_btn):
-            btn.setFixedWidth(130)
+            btn.setMinimumWidth(150)
         srl.addWidget(self.desktop_install_btn)
         srl.addWidget(self.desktop_remove_btn)
         srl.addStretch()
