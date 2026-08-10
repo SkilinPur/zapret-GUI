@@ -8,9 +8,10 @@ import sys
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QVBoxLayout, QWidget,
+    QComboBox, QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QVBoxLayout, QWidget,
 )
 
+from ..changelog import changelog_versions
 from ..updater import APP_VERSION, CheckWorker, git_pull_cmd, is_newer
 from ..worker import CommandWorker
 from .widgets import add_row, log_line, make_button, make_card, make_title
@@ -31,6 +32,7 @@ class UpdateTab(QWidget):
         self._checker = None
         self.latest_tag = ""
         self.latest_notes = ""
+        self._versions = []
         self._build_ui()
 
     # ------------------------------------------------------------------
@@ -62,9 +64,18 @@ class UpdateTab(QWidget):
 
         notes_card = make_card()
         nl = notes_card.layout()
+        head_row = QWidget()
+        hl = QHBoxLayout(head_row)
+        hl.setContentsMargins(0, 0, 0, 0)
+        hl.setSpacing(8)
         header = QLabel(">_ что изменилось")
         header.setObjectName("logHeader")
-        nl.addWidget(header)
+        hl.addWidget(header)
+        hl.addStretch()
+        self.version_combo = QComboBox()
+        self.version_combo.setMinimumWidth(180)
+        hl.addWidget(self.version_combo)
+        nl.addWidget(head_row)
         self.notes_view = QPlainTextEdit()
         self.notes_view.setObjectName("logView")
         self.notes_view.setReadOnly(True)
@@ -98,8 +109,55 @@ class UpdateTab(QWidget):
 
         self.check_btn.clicked.connect(lambda: self.check_now(show_dialog=False))
         self.update_btn.clicked.connect(self.do_update)
+        self.version_combo.currentIndexChanged.connect(self._show_selected_version)
+        self._load_changelog()
 
     # ------------------------------------------------------------------
+
+    def _load_changelog(self):
+        """Читает CHANGELOG.md и заполняет список версий."""
+        self._versions = changelog_versions(self.z.repo_root)
+        self.version_combo.clear()
+        for version, date, _ in self._versions:
+            self.version_combo.addItem(version if not date else f"{version} — {date}")
+        if not self._versions:
+            self.notes_view.setPlaceholderText("CHANGELOG.md не найден")
+            return
+        index = next(
+            (i for i, (v, _, _) in enumerate(self._versions) if v == APP_VERSION), 0
+        )
+        self.version_combo.setCurrentIndex(index)
+
+    def _show_selected_version(self, _index):
+        index = self.version_combo.currentIndex()
+        if 0 <= index < len(self._versions):
+            self.notes_view.setPlainText(self._versions[index][2])
+
+    def _version_body(self, version):
+        for v, _, body in self._versions:
+            if v == version:
+                return body
+        return ""
+
+    def _prepend_new_version(self, tag, notes):
+        """Добавляет новую версию сверху списка и выбирает её."""
+        version = tag[1:] if tag.startswith("v") else tag
+        if any(v == version for v, _, _ in self._versions):
+            self.version_combo.setCurrentIndex(
+                next(i for i, (v, _, _) in enumerate(self._versions) if v == version)
+            )
+            return
+        body = notes.strip() or (
+            f"Список изменений для версии {version} появится после обновления."
+        )
+        self._versions.insert(0, (version, "", body))
+        self.version_combo.insertItem(0, version)
+        self.version_combo.setCurrentIndex(0)
+
+    def _new_version_body(self):
+        """Текст changelog для самой свежей доступной версии."""
+        tag = self.latest_tag[1:] if self.latest_tag.startswith("v") else self.latest_tag
+        return self._version_body(tag)
 
     def check_now(self, show_dialog=False):
         if self._checker and self._checker.isRunning():
@@ -119,8 +177,8 @@ class UpdateTab(QWidget):
         self.latest_tag = tag
         self.latest_notes = notes
         self.latest_value.setText(tag or "—")
-        self.notes_view.setPlainText(notes or DEFAULT_NOTES)
         if is_newer(tag):
+            self._prepend_new_version(tag, notes)
             self.status_label.setText(f"✓ доступна новая версия {tag}")
             self.update_btn.setEnabled(True)
             if show_dialog:
@@ -152,7 +210,7 @@ class UpdateTab(QWidget):
         notes = QPlainTextEdit()
         notes.setObjectName("logView")
         notes.setReadOnly(True)
-        notes.setPlainText(self.latest_notes or DEFAULT_NOTES)
+        notes.setPlainText(self.latest_notes or self._new_version_body() or DEFAULT_NOTES)
         notes.setMinimumHeight(180)
         layout.addWidget(notes)
 
