@@ -189,6 +189,17 @@ class Zapret:
         path = self.repo_root / name
         return path if path.exists() else None
 
+    # ------------------------------------------------------------------
+    # Desktop-ярлык GUI
+    # ------------------------------------------------------------------
+
+    def desktop_gui_cmd(self, sub):
+        return self._cmd(["desktop", sub])
+
+    def gui_desktop_installed(self):
+        p = Path.home() / ".local" / "share" / "applications" / "zapret-discord-youtube-gui.desktop"
+        return p.exists()
+
     def downloads_present(self):
         return self.repo_dir.is_dir() and any(self.repo_dir.glob("*.bat"))
 

@@ -85,6 +85,33 @@ class ServiceTab(QWidget):
 
         root.addWidget(card)
 
+        shortcut_card = make_card()
+        sl = shortcut_card.layout()
+        sh_title = QLabel("Ярлык в меню приложений")
+        sh_title.setObjectName("cardTitle")
+        sl.addWidget(sh_title)
+        sh_hint = QLabel("Запуск графического интерфейса из меню — без консоли")
+        sh_hint.setObjectName("statusMetaLabel")
+        sl.addWidget(sh_hint)
+
+        self.desktop_status = QLabel()
+        self.desktop_status.setObjectName("statusLabel")
+        sl.addWidget(self.desktop_status)
+
+        srow = QWidget()
+        srl = QHBoxLayout(srow)
+        srl.setContentsMargins(0, 0, 0, 0)
+        srl.setSpacing(10)
+        self.desktop_install_btn = make_button("Установить ярлык")
+        self.desktop_remove_btn = make_button("Удалить ярлык")
+        for btn in (self.desktop_install_btn, self.desktop_remove_btn):
+            btn.setFixedWidth(130)
+        srl.addWidget(self.desktop_install_btn)
+        srl.addWidget(self.desktop_remove_btn)
+        srl.addStretch()
+        sl.addWidget(srow)
+        root.addWidget(shortcut_card)
+
         log_card = make_card()
         ll = log_card.layout()
         header = QLabel(f">_ логи сервиса ({SERVICE_NAME})")
@@ -104,6 +131,41 @@ class ServiceTab(QWidget):
         self.restart_btn.clicked.connect(lambda: self._run("restart"))
         self.refresh_btn.clicked.connect(self.refresh_status)
         self.logs_btn.clicked.connect(self.show_logs)
+
+        self.desktop_install_btn.clicked.connect(
+            lambda: self._run_desktop("install-gui")
+        )
+        self.desktop_remove_btn.clicked.connect(
+            lambda: self._run_desktop("remove-gui")
+        )
+        self.refresh_desktop_status()
+
+    # ------------------------------------------------------------------
+
+    def refresh_desktop_status(self):
+        installed = self.z.gui_desktop_installed()
+        self.desktop_status.setText(
+            "[ЯРЛЫК GUI: УСТАНОВЛЕН]" if installed
+            else "[ЯРЛЫК GUI: НЕ УСТАНОВЛЕН]"
+        )
+        self.desktop_status.setStyleSheet(
+            "color: #66bb6a;" if installed else "color: #616161;"
+        )
+        self.desktop_install_btn.setEnabled(not installed)
+        self.desktop_remove_btn.setEnabled(installed)
+
+    def _run_desktop(self, sub):
+        if self._worker and self._worker.isRunning():
+            self.append_log("! команда уже выполняется")
+            return
+        self.append_log(f"> desktop {sub}")
+        self._worker = CommandWorker(
+            self.z.desktop_gui_cmd(sub), cwd=str(self.z.repo_root),
+        )
+        self._worker.output.connect(self.append_log)
+        self._worker.failed.connect(lambda msg: self.append_log(f"! {msg}"))
+        self._worker.success.connect(lambda _: self.refresh_desktop_status())
+        self._worker.start()
 
     # ------------------------------------------------------------------
 

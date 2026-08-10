@@ -143,6 +143,13 @@ QLabel[section="true"] {
     color: #9e9e9e;
 }
 
+#cardTitle {
+    font-family: 'DejaVu Sans Mono', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    color: #e53935;
+}
+
 /* ---------- Кнопки ---------- */
 QPushButton {
     background-color: #1a1a1e;
