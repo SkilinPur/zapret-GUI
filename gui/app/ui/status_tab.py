@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from ..zapret import Zapret
 from ..worker import CommandWorker, DaemonWorker
-from .widgets import make_button, make_card, make_title
+from .widgets import log_line, make_button, make_card, make_title
 
 MODE_DAEMON = 0
 MODE_SERVICE = 1
@@ -185,10 +185,9 @@ class StatusTab(QWidget):
     # ------------------------------------------------------------------
 
     def append_log(self, text):
-        if text:
-            self.log_view.appendPlainText(text)
-            sb = self.log_view.verticalScrollBar()
-            sb.setValue(sb.maximum())
+        log_line(self.log_view, text)
+        sb = self.log_view.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
     def refresh_status(self):
         running = self.z.nfqws_running()

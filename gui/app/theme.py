@@ -58,12 +58,6 @@ QMainWindow, #rootWidget {
     font-weight: bold;
 }
 
-#cursorLabel {
-    color: #e53935;
-    font-size: 16px;
-    font-weight: bold;
-}
-
 /* ---------- Боковая панель ---------- */
 #sidebarWidget {
     background-color: #101013;

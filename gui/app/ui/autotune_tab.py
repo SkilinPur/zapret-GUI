@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from ..zapret import Zapret
 from ..worker import CommandWorker
-from .widgets import add_row, make_button, make_card, make_title
+from .widgets import add_row, log_line, make_button, make_card, make_title
 
 
 class AutotuneTab(QWidget):
@@ -144,16 +144,14 @@ class AutotuneTab(QWidget):
         for youtube in (True, False):
             path = self.z.autotune_results_file(youtube=youtube)
             if path:
-                self.results_view.appendPlainText(
-                    f"== {path.name} ==")
+                log_line(self.results_view, f"== {path.name} ==")
                 try:
                     content = path.read_text(encoding="utf-8", errors="replace")
-                    self.results_view.appendPlainText(content.strip() or "(пусто)")
+                    log_line(self.results_view, content.strip() or "(пусто)")
                 except OSError as exc:
-                    self.results_view.appendPlainText(f"! не удалось прочитать: {exc}")
-                self.results_view.appendPlainText("")
+                    log_line(self.results_view, f"! не удалось прочитать: {exc}")
+                log_line(self.results_view, "")
 
     def append_log(self, text):
-        if text:
-            self.results_view.appendPlainText(text)
+        log_line(self.results_view, text)
 

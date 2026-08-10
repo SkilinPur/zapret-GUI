@@ -3,9 +3,28 @@
 # =============================================================================
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
+import html as _html
+
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget,
 )
+
+LOG_COLORS = {
+    ">": "#4fc3f7",
+    "!": "#ef5350",
+    "✓": "#66bb6a",
+    "$": "#66bb6a",
+    "#": "#ffb74d",
+}
+LOG_DEFAULT = "#e0e0e0"
+
+
+def log_line(view, text):
+    """Цветная строка лога в QPlainTextEdit: > команда, ! ошибка, ✓ успех."""
+    if not text:
+        return
+    color = LOG_COLORS.get(text[:1], LOG_DEFAULT)
+    view.appendHtml(f'<span style="color:{color}">{_html.escape(text)}</span>')
 
 
 def make_card(widget=None, margins=(16, 16, 16, 16)):

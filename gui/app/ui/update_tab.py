@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 
 from ..updater import APP_VERSION, CheckWorker, git_pull_cmd, is_newer
 from ..worker import CommandWorker
-from .widgets import add_row, make_button, make_card, make_title
+from .widgets import add_row, log_line, make_button, make_card, make_title
 
 DEFAULT_NOTES = (
     "Обновление содержит исправления и улучшения.\n"
@@ -236,5 +236,4 @@ class UpdateTab(QWidget):
         os.execv(sys.executable, [sys.executable, "-m", "gui.app.main"])
 
     def append_log(self, text):
-        if text:
-            self.log_view.appendPlainText(text)
+        log_line(self.log_view, text)

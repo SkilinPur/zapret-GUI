@@ -87,26 +87,15 @@ class MainWindow(QMainWindow):
         brand = QLabel("InIProject")
         brand.setObjectName("brandLabel")
 
-        self.cursor = QLabel("▮")
-        self.cursor.setObjectName("cursorLabel")
-
         subtitle = QLabel("Zapret Discord YouTube — обход замедления")
         subtitle.setObjectName("subtitleLabel")
 
         layout.addWidget(brand)
-        layout.addWidget(self.cursor)
         layout.addSpacing(8)
         layout.addWidget(subtitle)
         layout.addStretch()
 
-        self._cursor_timer = QTimer(self)
-        self._cursor_timer.timeout.connect(self._blink_cursor)
-        self._cursor_timer.start(500)
-
         return header
-
-    def _blink_cursor(self):
-        self.cursor.setVisible(not self.cursor.isVisible())
 
     def _build_sidebar(self):
         side = QWidget()

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 
 from ..zapret import Zapret
 from ..worker import CommandWorker
-from .widgets import make_button, make_card, make_title
+from .widgets import log_line, make_button, make_card, make_title
 
 
 class StrategiesTab(QWidget):
@@ -101,6 +101,5 @@ class StrategiesTab(QWidget):
         self.append_log(f"! ошибка: {msg}")
 
     def append_log(self, text):
-        if text:
-            self.log_view.appendPlainText(text)
+        log_line(self.log_view, text)
 

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 
 from ..zapret import Zapret
 from ..worker import CommandWorker
-from .widgets import add_row, make_button, make_card, make_title
+from .widgets import add_row, log_line, make_button, make_card, make_title
 
 SERVICE_NAME = "zapret_discord_youtube"
 
@@ -163,8 +163,7 @@ class ServiceTab(QWidget):
         self._worker.start()
 
     def append_log(self, text):
-        if text:
-            self.log_view.appendPlainText(text)
-            sb = self.log_view.verticalScrollBar()
-            sb.setValue(sb.maximum())
+        log_line(self.log_view, text)
+        sb = self.log_view.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
