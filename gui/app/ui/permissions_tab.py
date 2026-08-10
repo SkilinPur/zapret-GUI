@@ -4,7 +4,7 @@
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
 from PySide6.QtWidgets import (
-    QLabel, QPlainTextEdit, QVBoxLayout, QWidget,
+    QInputDialog, QLabel, QLineEdit, QPlainTextEdit, QVBoxLayout, QWidget,
 )
 
 import getpass
@@ -45,9 +45,9 @@ class PermissionsTab(QWidget):
             "Для запуска/остановки zapret нужны права root. Кнопка добавляет "
             "в sudoers NOPASSWD-правила для nft/iptables/nfqws/pkill и запуска "
             "service.sh, чтобы GUI мог работать без пароля.\n"
-            "Пароль запросит системное окно (polkit). Если NOPASSWD уже "
-            "работает — кнопка просто обновит правила (например, после "
-            "обновления программы)."
+            "Будет запрошен ваш пароль sudo (пароль учётной записи, не root). "
+            "Если NOPASSWD уже работает — кнопка просто обновит правила "
+            "(например, после обновления программы)."
         )
         hint.setProperty("subtitle", True)
         hint.setWordWrap(True)
@@ -91,10 +91,34 @@ class PermissionsTab(QWidget):
         if self._worker and self._worker.isRunning():
             return
         user = getpass.getuser()
-        self.append_log("> запуск setup-permissions (пароль запросит системное окно)")
+        self.append_log("> запуск setup-permissions")
         self.setup_btn.setEnabled(False)
+
+        if self.z.sudo_available():
+            # NOPASSWD уже работает — достаточно обновить правила
+            self._start_worker(user, elevated=True, password=None)
+            return
+
+        password, ok = QInputDialog.getText(
+            self,
+            "Пароль sudo",
+            f"Введите пароль пользователя {user}\n"
+            "(нужен один раз для настройки прав):",
+            QLineEdit.Password,
+        )
+        if not ok or not password:
+            self.setup_btn.setEnabled(True)
+            self.append_log("! отменено")
+            return
+        self._start_worker(user, elevated=False, password=password)
+        password = ""
+
+    def _start_worker(self, user, elevated=False, password=None):
         self._worker = CommandWorker(
-            self.z.setup_permissions_cmd(user), cwd=str(self.z.repo_root), pkexec=True,
+            self.z.setup_permissions_cmd(user),
+            cwd=str(self.z.repo_root),
+            elevated=elevated,
+            password=password,
         )
         self._worker.output.connect(self.append_log)
         self._worker.failed.connect(self._on_failed)
@@ -111,7 +135,7 @@ class PermissionsTab(QWidget):
         self.append_log(f"! ошибка: {msg}")
         user = getpass.getuser()
         self.append_log(
-            f'! если системное окно не появилось — выполните в терминале:'
+            f'! если не получилось — выполните в терминале:'
             f' sudo bash "{self.z.service}" setup-permissions {user}'
         )
         self.refresh_status()

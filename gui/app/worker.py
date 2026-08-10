@@ -15,19 +15,21 @@ class CommandWorker(QThread):
     success = Signal(str)
     failed = Signal(str)
 
-    def __init__(self, cmd, cwd=None, elevated=False, pkexec=False, stdin=None, parent=None):
+    def __init__(self, cmd, cwd=None, elevated=False, password=None, stdin=None, parent=None):
         super().__init__(parent)
         self._cmd = cmd
         self._cwd = cwd
         self._elevated = elevated
-        self._pkexec = pkexec
+        self._password = password
         self._stdin = stdin
         self._proc = None
 
     def run(self):
-        if self._pkexec:
-            # Показывает системный диалог ввода пароля (polkit)
-            cmd = ["pkexec"] + self._cmd
+        stdin_data = self._stdin
+        if self._password is not None:
+            # Пароль sudo передаём один раз через stdin (sudo -S)
+            cmd = ["sudo", "-S"] + self._cmd
+            stdin_data = self._password + "\n"
         elif self._elevated:
             cmd = ["sudo", "-n"] + self._cmd
         else:
@@ -36,12 +38,14 @@ class CommandWorker(QThread):
             self._proc = subprocess.Popen(
                 cmd, cwd=self._cwd,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                stdin=subprocess.PIPE if self._stdin is not None else subprocess.DEVNULL,
+                stdin=subprocess.PIPE if stdin_data is not None else subprocess.DEVNULL,
                 text=True, bufsize=1, encoding="utf-8", errors="replace",
             )
-            if self._stdin is not None:
-                self._proc.stdin.write(self._stdin)
+            if stdin_data is not None:
+                self._proc.stdin.write(stdin_data)
                 self._proc.stdin.close()
+            # Пароль больше не нужен — не держим его в памяти
+            self._password = None
         except FileNotFoundError:
             self.failed.emit("Команда не найдена. Проверьте наличие service.sh")
             return
