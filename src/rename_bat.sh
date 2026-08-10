@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Директория для обработки (по умолчанию zapret-latest, можно переопределить)
-TARGET_DIR="${TARGET_DIR:-zapret-latest}"
+# Директория для обработки (по умолчанию корень проекта, можно переопределить TARGET_DIR)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_DIR="${TARGET_DIR:-$SCRIPT_DIR/../zapret-latest}"
 
 # Функция для транслитерации русских символов в латинские
 transliterate() {

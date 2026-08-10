@@ -250,26 +250,36 @@ show_strategies() {
 
 # Валидация и нормализация названия стратегии
 # Возвращает 0 и выводит нормализованное имя, или 1 при ошибке
+# Сравнение строковое, без regex — имена с пробелами/скобками/точками работают
 normalize_strategy() {
     local s="$1"
+    local candidate
 
     # Поиск точного совпадения
-    local exact_match
-    exact_match=$(get_strategies | grep -E "^(${s}|${s}\\.bat|general_${s}|general_${s}\\.bat)$" | head -n1)
-
-    if [ -n "$exact_match" ]; then
-        echo "$exact_match"
-        return 0
-    fi
+    while IFS= read -r candidate; do
+        [[ -z "$candidate" ]] && continue
+        if [[ "$candidate" == "$s" ]] || \
+           [[ "$candidate" == "$s.bat" ]] || \
+           [[ "$candidate" == "general_$s" ]] || \
+           [[ "$candidate" == "general_$s.bat" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    done < <(get_strategies)
 
     # Регистронезависимый поиск
-    local case_insensitive_match
-    case_insensitive_match=$(get_strategies | grep -i -E "^(${s}|${s}\\.bat|general_${s}|general_${s}\\.bat)$" | head -n1)
-
-    if [ -n "$case_insensitive_match" ]; then
-        echo "$case_insensitive_match"
-        return 0
-    fi
+    local sl="${s,,}"
+    while IFS= read -r candidate; do
+        [[ -z "$candidate" ]] && continue
+        local cl="${candidate,,}"
+        if [[ "$cl" == "$sl" ]] || \
+           [[ "$cl" == "$sl.bat" ]] || \
+           [[ "$cl" == "general_$sl" ]] || \
+           [[ "$cl" == "general_$sl.bat" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    done < <(get_strategies)
 
     return 1
 }
