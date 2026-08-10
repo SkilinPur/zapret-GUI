@@ -7,12 +7,13 @@
 show_permissions_usage() {
     echo "Usage: $(basename "$0") setup-permissions [command]"
     echo
-    echo "Настройка NOPASSWD для nft, iptables, ip6tables и nfqws."
+    echo "Настройка NOPASSWD для nft, iptables, ip6tables, nfqws и запуска service.sh."
     echo
     echo "Commands:"
     echo "    (без аргументов)  Создать /etc/sudoers.d/zapret"
     echo "    status            Показать текущие настройки"
     echo "    remove            Удалить настройки"
+    echo "    USER              Имя пользователя для правил (по умолчанию — определить автоматически)"
 }
 
 handle_permissions_command() {
@@ -26,13 +27,12 @@ handle_permissions_command() {
         -h|--help)
             show_permissions_usage
             ;;
-        "")
-            setup_permissions
-            ;;
         *)
-            echo "Unknown command: $1"
-            show_permissions_usage
-            exit 1
+            # Всё остальное — имя пользователя, для которого настраиваем
+            # NOPASSWD (пусто = определить автоматически). Например:
+            #   service.sh setup-permissions            # авто-определение
+            #   service.sh setup-permissions skilin     # явный пользователь
+            setup_permissions "${1:-}"
             ;;
     esac
 }

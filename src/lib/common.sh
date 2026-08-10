@@ -176,6 +176,16 @@ setup_repository() {
 
     # Обновляем на месте только нужные файлы: bat-стратегии и списки.
     # Каталог не удаляется, чтобы не задеть файлы комплекта и пользовательские списки.
+    # Если каталог ранее был создан от root, git/rm не смогут в него писать — чиним владельца.
+    if [ -d "$REPO_DIR" ] && ! [ -w "$REPO_DIR" ]; then
+        local current_user
+        current_user=$(id -un)
+        log "Каталог $REPO_DIR создан от root, восстанавливаю владельца ($current_user)..."
+        elevate chown -R "$current_user" "$REPO_DIR" || {
+            handle_error "Не удалось восстановить владельца $REPO_DIR. Выполните вручную: sudo chown -R $current_user $REPO_DIR"
+        }
+    fi
+
     mkdir -p "$REPO_DIR"
     rm -f "$REPO_DIR"/*.bat
     cp "$tmp_dir/strategies"/*.bat "$REPO_DIR/" 2>/dev/null || true

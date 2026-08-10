@@ -36,10 +36,15 @@ class Zapret:
         )
 
     def sudo_available(self):
+        """Проверяет именно ту команду, которой GUI пользуется для повышения прав:
+        sudo -n bash service.sh <что-то>."""
         try:
-            p = subprocess.run(["sudo", "-n", "true"], capture_output=True)
+            p = subprocess.run(
+                ["sudo", "-n", self.bash, str(self.service), "status"],
+                capture_output=True, timeout=15,
+            )
             return p.returncode == 0
-        except FileNotFoundError:
+        except Exception:
             return False
 
     # ------------------------------------------------------------------
@@ -166,8 +171,11 @@ class Zapret:
     def nfqws_present(self):
         return (self.repo_root / "nfqws").exists()
 
-    def setup_permissions_cmd(self):
-        return self._cmd(["setup-permissions"])
+    def setup_permissions_cmd(self, user=None):
+        cmd = self._cmd(["setup-permissions"])
+        if user:
+            cmd.append(user)
+        return cmd
 
     def autotune_youtube_cmd(self):
         return [self.bash, str(self.repo_root / "auto_tune_youtube.sh")]

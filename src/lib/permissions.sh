@@ -12,6 +12,26 @@ get_cmd_path() {
     command -v "$1" 2>/dev/null || echo "/usr/bin/$1"
 }
 
+# Определяет, для какого пользователя настраивать NOPASSWD.
+# Приоритет: явный аргумент > SUDO_USER (sudo) > PKEXEC_UID (pkexec) > текущий пользователь.
+# Нужно, т.к. при запуске через sudo/pkexec $USER внутри скрипта = root.
+resolve_setup_user() {
+    local explicit="${1:-}"
+    if [[ -n "$explicit" ]]; then
+        echo "$explicit"
+        return 0
+    fi
+    if [[ -n "${SUDO_USER:-}" ]]; then
+        echo "$SUDO_USER"
+        return 0
+    fi
+    if [[ -n "${PKEXEC_UID:-}" ]]; then
+        id -nu "$PKEXEC_UID" 2>/dev/null || echo "$PKEXEC_UID"
+        return 0
+    fi
+    id -un
+}
+
 # -----------------------------------------------------------------------------
 # Генерация sudoers
 # -----------------------------------------------------------------------------
@@ -19,21 +39,39 @@ get_cmd_path() {
 generate_sudoers_content() {
     local user="$1"
     local nfqws_path="${2:-$NFQWS_PATH}"
+    local base_dir="${3:-$BASE_DIR}"
     local nft_path=$(get_cmd_path nft)
     local pkill_path=$(get_cmd_path pkill)
+    local chown_path=$(get_cmd_path chown)
+    local bash_path=$(get_cmd_path bash)
 
     local iptables_path=$(get_cmd_path iptables)
     local ip6tables_path=$(get_cmd_path ip6tables)
+
+    # Право на запуск service.sh через bash — так GUI выполняет все команды
+    local bash_line=""
+    if [[ -n "$base_dir" && -n "$user" ]]; then
+        bash_line="$user ALL=(root) NOPASSWD: $bash_path $base_dir/service.sh *"
+    fi
+
+    # Право на восстановление владельца каталога проекта
+    # (нужно, если zapret-latest был создан от root и мешает обновлению)
+    local chown_line=""
+    if [[ -n "$base_dir" && -n "$user" ]]; then
+        chown_line="$user ALL=(root) NOPASSWD: $chown_path -R $user $base_dir"
+    fi
 
     cat <<EOF
 # Zapret Discord YouTube - NOPASSWD для $user
 # Файл: $SUDOERS_FILE
 
+${bash_line:+$bash_line}
 $user ALL=(root) NOPASSWD: $nft_path *
 $user ALL=(root) NOPASSWD: $iptables_path *
 $user ALL=(root) NOPASSWD: $ip6tables_path *
 $user ALL=(root) NOPASSWD: $nfqws_path *
 $user ALL=(root) NOPASSWD: $pkill_path -f nfqws
+${chown_line:+$chown_line}
 EOF
 }
 
@@ -49,7 +87,7 @@ setup_sudoers() {
     fi
 
     local content
-    content=$(generate_sudoers_content "$user" "$NFQWS_PATH")
+    content=$(generate_sudoers_content "$user" "$NFQWS_PATH" "$BASE_DIR")
 
     echo ""
     echo "Будет создан $SUDOERS_FILE:"
@@ -93,10 +131,23 @@ setup_sudoers() {
 generate_doas_rules() {
     local user="$1"
     local nfqws_path="${2:-$NFQWS_PATH}"
+    local base_dir="${3:-$BASE_DIR}"
     local nft_path=$(get_cmd_path nft)
 
     local iptables_path=$(get_cmd_path iptables)
     local ip6tables_path=$(get_cmd_path ip6tables)
+
+    # Право на запуск service.sh через bash
+    local bash_line=""
+    if [[ -n "$base_dir" && -n "$user" ]]; then
+        bash_line="permit nopass $user as root cmd bash args $base_dir/service.sh *"
+    fi
+
+    # Право на восстановление владельца каталога проекта
+    local chown_line=""
+    if [[ -n "$base_dir" && -n "$user" ]]; then
+        chown_line="permit nopass $user as root cmd chown args -R $user $base_dir"
+    fi
 
     cat <<EOF
 # Zapret Discord YouTube - nopass для $user
@@ -105,6 +156,8 @@ permit nopass $user as root cmd $iptables_path
 permit nopass $user as root cmd $ip6tables_path
 permit nopass $user as root cmd $nfqws_path
 permit nopass $user as root cmd pkill args -f nfqws
+${bash_line:+$bash_line}
+${chown_line:+$chown_line}
 EOF
 }
 
@@ -114,7 +167,7 @@ setup_doas() {
     echo "Настройка doas для $user..."
 
     local rules
-    rules=$(generate_doas_rules "$user" "$NFQWS_PATH")
+    rules=$(generate_doas_rules "$user" "$NFQWS_PATH" "$BASE_DIR")
 
     echo ""
     echo "Будут добавлены в $DOAS_CONF:"
@@ -163,7 +216,8 @@ setup_doas() {
 # -----------------------------------------------------------------------------
 
 setup_permissions() {
-    local user="${1:-$USER}"
+    local user
+    user=$(resolve_setup_user "${1:-}")
     local system
     system=$(get_elevate_cmd) || {
         show_error "Ошибка: не найден sudo или doas"

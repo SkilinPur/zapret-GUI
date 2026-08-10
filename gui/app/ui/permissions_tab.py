@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QLabel, QPlainTextEdit, QVBoxLayout, QWidget,
 )
 
+import getpass
+
 from ..zapret import Zapret
 from ..worker import CommandWorker
 from .widgets import log_line, make_button, make_card, make_title
@@ -40,9 +42,12 @@ class PermissionsTab(QWidget):
         cl.addWidget(self.status_label)
 
         hint = QLabel(
-            "Для запуска/остановки zapret нужны права root. Скрипт "
-            "setup-permissions добавляет в sudoers NOPASSWD-правила для "
-            "nft/iptables/nfqws/systemctl, чтобы GUI мог работать без пароля."
+            "Для запуска/остановки zapret нужны права root. Кнопка добавляет "
+            "в sudoers NOPASSWD-правила для nft/iptables/nfqws/pkill и запуска "
+            "service.sh, чтобы GUI мог работать без пароля.\n"
+            "Пароль запросит системное окно (polkit). Если NOPASSWD уже "
+            "работает — кнопка просто обновит правила (например, после "
+            "обновления программы)."
         )
         hint.setProperty("subtitle", True)
         hint.setWordWrap(True)
@@ -74,20 +79,22 @@ class PermissionsTab(QWidget):
         ok = self.z.sudo_available()
         if ok:
             self.status_label.setText("[ПРАВА: NOPASSWD РАБОТАЕТ]")
-            self.status_label.setStyleSheet("color: #e53935;")
-            self.setup_btn.setEnabled(False)
+            self.status_label.setStyleSheet("color: #2e7d32;")
+            self.setup_btn.setText("🔑 Переустановить права (NOPASSWD уже работает)")
         else:
             self.status_label.setText("[ПРАВА: ПАРОЛЬ ТРЕБУЕТСЯ]")
             self.status_label.setStyleSheet("color: #616161;")
-            self.setup_btn.setEnabled(True)
+            self.setup_btn.setText("🔑 Настроить работу без пароля")
+        self.setup_btn.setEnabled(True)
 
     def setup_permissions(self):
         if self._worker and self._worker.isRunning():
             return
-        self.append_log("> запуск setup-permissions (потребуется пароль в терминале)")
+        user = getpass.getuser()
+        self.append_log("> запуск setup-permissions (пароль запросит системное окно)")
         self.setup_btn.setEnabled(False)
         self._worker = CommandWorker(
-            self.z.setup_permissions_cmd(), cwd=str(self.z.repo_root), elevated=True,
+            self.z.setup_permissions_cmd(user), cwd=str(self.z.repo_root), pkexec=True,
         )
         self._worker.output.connect(self.append_log)
         self._worker.failed.connect(self._on_failed)
@@ -102,6 +109,11 @@ class PermissionsTab(QWidget):
     def _on_failed(self, msg):
         self.setup_btn.setEnabled(True)
         self.append_log(f"! ошибка: {msg}")
+        user = getpass.getuser()
+        self.append_log(
+            f'! если системное окно не появилось — выполните в терминале:'
+            f' sudo bash "{self.z.service}" setup-permissions {user}'
+        )
         self.refresh_status()
 
     def append_log(self, text):

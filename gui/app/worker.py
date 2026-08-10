@@ -15,16 +15,23 @@ class CommandWorker(QThread):
     success = Signal(str)
     failed = Signal(str)
 
-    def __init__(self, cmd, cwd=None, elevated=False, stdin=None, parent=None):
+    def __init__(self, cmd, cwd=None, elevated=False, pkexec=False, stdin=None, parent=None):
         super().__init__(parent)
         self._cmd = cmd
         self._cwd = cwd
         self._elevated = elevated
+        self._pkexec = pkexec
         self._stdin = stdin
         self._proc = None
 
     def run(self):
-        cmd = (["sudo", "-n"] if self._elevated else []) + self._cmd
+        if self._pkexec:
+            # Показывает системный диалог ввода пароля (polkit)
+            cmd = ["pkexec"] + self._cmd
+        elif self._elevated:
+            cmd = ["sudo", "-n"] + self._cmd
+        else:
+            cmd = self._cmd
         try:
             self._proc = subprocess.Popen(
                 cmd, cwd=self._cwd,

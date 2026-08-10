@@ -3,6 +3,7 @@
 # =============================================================================
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
+import getpass
 import os
 import sys
 
@@ -242,9 +243,40 @@ class UpdateTab(QWidget):
         self.update_btn.setEnabled(False)
         self.check_btn.setEnabled(False)
         self.status_label.setText("> обновление…")
+        repo_root = str(self.z.repo_root)
+        zapret_dir = os.path.join(repo_root, "zapret-latest")
+        if os.path.exists(zapret_dir) and not os.access(zapret_dir, os.W_OK):
+            self._start_ownership_fix(repo_root)
+            return
+        self._run_git_pull(repo_root)
+
+    def _start_ownership_fix(self, repo_root):
+        """zapret-latest создан от root и не даёт писать — пробуем вернуть владельца."""
+        user = getpass.getuser()
+        self.append_log(
+            f"! {os.path.join(repo_root, 'zapret-latest')} не доступен для записи (создан от root)"
+        )
+        self.status_label.setText("> восстанавливаю права на файлы…")
+        self._worker = CommandWorker(["chown", "-R", user, repo_root], elevated=True)
+        self._worker.output.connect(self.append_log)
+        self._worker.failed.connect(self._on_ownership_fix_failed)
+        self._worker.success.connect(lambda _: self._run_git_pull(repo_root))
+        self._worker.start()
+
+    def _on_ownership_fix_failed(self, msg):
+        self.update_btn.setEnabled(True)
+        self.check_btn.setEnabled(True)
+        user = getpass.getuser()
+        repo_root = str(self.z.repo_root)
+        self.status_label.setText(f"! ошибка обновления: {msg}")
+        self.append_log(f"! не удалось восстановить права: {msg}")
+        self.append_log(f'! выполните в терминале: sudo chown -R {user} "{repo_root}"')
+        self.append_log("! затем нажмите «Обновить» ещё раз")
+
+    def _run_git_pull(self, repo_root):
         self.append_log("> git pull (обновление программы)")
         self._worker = CommandWorker(
-            git_pull_cmd(str(self.z.repo_root)), cwd=str(self.z.repo_root),
+            git_pull_cmd(repo_root), cwd=repo_root,
         )
         self._worker.output.connect(self.append_log)
         self._worker.failed.connect(self._on_failed)
