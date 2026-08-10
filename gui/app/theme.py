@@ -363,7 +363,20 @@ QProgressBar::chunk {
     border-radius: 5px;
 }
 
-/* ---------- Сплиттеры / разделители ---------- */
+/* ---------- Диалоги ---------- */
+QDialog, QMessageBox, QInputDialog {
+    background-color: #141417;
+    color: #d1d1d1;
+}
+
+QMessageBox QLabel, QInputDialog QLabel {
+    color: #d1d1d1;
+}
+
+QDialogButtonBox QPushButton {
+    min-width: 88px;
+}
+
 QToolTip {
     background-color: #141417;
     color: #d1d1d1;

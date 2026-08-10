@@ -12,6 +12,24 @@ get_cmd_path() {
     command -v "$1" 2>/dev/null || echo "/usr/bin/$1"
 }
 
+# Безопасное чтение строки. При запуске без терминала (GUI) запрос пропускается
+# и возвращается значение по умолчанию — иначе read при EOF вернёт ошибку,
+# а `set -e` оборвёт скрипт.
+safe_read() {
+    local prompt="$1" default="${2:-}"
+    if ! [ -t 0 ]; then
+        printf '%s\n' "$default"
+        return 0
+    fi
+    local answer=""
+    if read -r -p "$prompt" answer; then
+        printf '%s\n' "${answer:-$default}"
+    else
+        printf '%s\n' "$default"
+    fi
+    return 0
+}
+
 # Определяет, для какого пользователя настраивать NOPASSWD.
 # Приоритет: явный аргумент > SUDO_USER (sudo) > PKEXEC_UID (pkexec) > текущий пользователь.
 # Нужно, т.к. при запуске через sudo/pkexec $USER внутри скрипта = root.
@@ -96,10 +114,11 @@ setup_sudoers() {
     echo "─────────────────────────────────────────"
     echo ""
 
-    read -p "Создать? [Y/n]: " confirm
-    if [[ ! "${confirm:-Y}" =~ ^[Yy]$ ]]; then
+    local confirm
+    confirm=$(safe_read "Создать? [Y/n]: " "Y")
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         echo "Отменено"
-        read -p "Нажмите Enter для продолжения..."
+        safe_read "Нажмите Enter для продолжения..." > /dev/null
         return 0
     fi
 
@@ -120,7 +139,7 @@ setup_sudoers() {
     fi
 
     echo "Готово: $SUDOERS_FILE"
-    read -p "Нажмите Enter для продолжения..."
+    safe_read "Нажмите Enter для продолжения..." > /dev/null
     return 0
 }
 
@@ -176,23 +195,25 @@ setup_doas() {
     echo "─────────────────────────────────────────"
     echo ""
 
-    read -p "Добавить? [Y/n]: " confirm
-    if [[ "${confirm:-Y}" =~ ^[Nn]$ ]]; then
+    local confirm
+    confirm=$(safe_read "Добавить? [Y/n]: " "Y")
+    if [[ "$confirm" =~ ^[Nn]$ ]]; then
         echo "Отменено"
-        read -p "Нажмите Enter для продолжения..."
+        safe_read "Нажмите Enter для продолжения..." > /dev/null
         return 0
     fi
 
     # Проверяем, есть ли уже наши правила
     if [[ -f "$DOAS_CONF" ]] && grep -q "# Zapret Discord YouTube" "$DOAS_CONF"; then
         echo "Правила уже есть в $DOAS_CONF"
-        read -p "Заменить? [Y/n]: " replace
-        if [[ "${replace:-Y}" =~ ^[Yy]$ ]]; then
+        local replace
+        replace=$(safe_read "Заменить? [Y/n]: " "Y")
+        if [[ "$replace" =~ ^[Yy]$ ]]; then
             # Удаляем старый блок (от маркера до пустой строки или конца)
             elevate sed -i '/# Zapret Discord YouTube/,/^$/d' "$DOAS_CONF"
         else
             echo "Отменено"
-            read -p "Нажмите Enter для продолжения..."
+            safe_read "Нажмите Enter для продолжения..." > /dev/null
             return 0
         fi
     fi
@@ -207,7 +228,7 @@ setup_doas() {
     }
 
     echo "Готово: правила добавлены в $DOAS_CONF"
-    read -p "Нажмите Enter для продолжения..."
+    safe_read "Нажмите Enter для продолжения..." > /dev/null
     return 0
 }
 
