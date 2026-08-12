@@ -44,6 +44,7 @@ class MainWindow(QMainWindow):
         self._tabs = []
         self._really_quit = False
         self._tray_daemon = None
+        self._tray_worker = None
         self._was_running = None
         self._build_ui()
         self.setWindowTitle("InIProject — Zapret Discord YouTube")
@@ -111,6 +112,8 @@ class MainWindow(QMainWindow):
         self._tray_daemon = DaemonWorker(
             self.zapret.daemon_cmd(), cwd=str(self.zapret.repo_root), elevated=True,
         )
+        # Ссылку держим, пока поток не завершится — иначе QThread упадёт.
+        self._tray_daemon.finished.connect(self._on_tray_daemon_done)
         self._tray_daemon.failed.connect(self._on_tray_daemon_failed)
         self._tray_daemon.start()
         if self._tray is not None:
@@ -124,15 +127,19 @@ class MainWindow(QMainWindow):
 
     def tray_stop_zapret(self):
         """Быстрая остановка из трея."""
+        if self._tray_worker and self._tray_worker.isRunning():
+            return
         log_to_file("tray: остановка zapret")
         w = CommandWorker(
             self.zapret.kill_cmd(), cwd=str(self.zapret.repo_root), elevated=True,
         )
+        # Держим воркер живым до завершения потока (иначе GC уронит приложение)
+        self._tray_worker = w
+        w.finished.connect(self._on_tray_worker_done)
         w.failed.connect(lambda msg: log_to_file(f"tray: ошибка остановки: {msg}"))
         w.start()
         if self._tray_daemon and self._tray_daemon.isRunning():
             self._tray_daemon.terminate()
-            self._tray_daemon = None
         if self._tray is not None:
             self._tray.showMessage(
                 "Zapret Discord YouTube",
@@ -141,6 +148,12 @@ class MainWindow(QMainWindow):
                 1500,
             )
         self._update_status_indicator()
+
+    def _on_tray_worker_done(self):
+        self._tray_worker = None
+
+    def _on_tray_daemon_done(self):
+        self._tray_daemon = None
 
     def _on_tray_daemon_failed(self, msg):
         log_to_file(f"tray: ошибка запуска: {msg}")
@@ -270,10 +283,27 @@ class MainWindow(QMainWindow):
                 3000,
             )
             return
-        if self._tray_daemon and self._tray_daemon.isRunning():
-            self._tray_daemon.terminate()
+        self._stop_thread(self._tray_daemon)
+        self._stop_thread(self._tray_worker)
         for tab in self._tabs:
-            if hasattr(tab, "daemon") and tab.daemon and tab.daemon.isRunning():
-                tab.daemon.terminate()
+            self._stop_thread(getattr(tab, "daemon", None))
+            for attr in ("_worker", "_current_worker", "_checker"):
+                self._stop_thread(getattr(tab, attr, None))
         event.accept()
+
+    @staticmethod
+    def _stop_thread(thread, timeout=2000):
+        """Безопасно завершает фоновый поток перед выходом.
+
+        Иначе QThread уничтожается, пока его поток ещё работает, и PySide6
+        роняет приложение («QThread: Destroyed while thread is still running»).
+        """
+        if thread is None or not thread.isRunning():
+            return
+        stop = getattr(thread, "stop", None)
+        if callable(stop):
+            stop()          # CommandWorker: завершает подпроцесс
+        else:
+            thread.terminate()  # DaemonWorker/CheckWorker: принудительно
+        thread.wait(timeout)
 

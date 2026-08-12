@@ -9,7 +9,7 @@ import urllib.request
 
 from PySide6.QtCore import QThread, Signal
 
-APP_VERSION = "1.0.19"
+APP_VERSION = "1.0.20"
 GITHUB_REPO = "SkilinPur/zapret-GUI"
 API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 REPO_GIT_URL = f"https://github.com/{GITHUB_REPO}.git"
