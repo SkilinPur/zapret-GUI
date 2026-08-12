@@ -46,7 +46,7 @@ def make_led_icon(running=True):
 
 
 def install_tray(window):
-    """Создаёт иконку в системном трее. Возвращает объект или None."""
+    """Создаёт иконку в системном трее с управлением zapret. Возвращает объект или None."""
     if not QSystemTrayIcon.isSystemTrayAvailable():
         return None
 
@@ -54,12 +54,22 @@ def install_tray(window):
     tray = QSystemTrayIcon(make_led_icon(False), app)
     tray.setToolTip("Zapret Discord YouTube")
 
+    # Быстрое управление zapret прямо из трея
+    tray.start_action = QAction("▶ Запустить zapret", tray)
+    tray.stop_action = QAction("⏹ Остановить zapret", tray)
+    tray.start_action.triggered.connect(window.tray_start_zapret)
+    tray.stop_action.triggered.connect(window.tray_stop_zapret)
+    tray.stop_action.setEnabled(False)
+
     show_action = QAction("Показать окно", tray)
     quit_action = QAction("Завершить программу", tray)
     show_action.triggered.connect(window.show_from_tray)
     quit_action.triggered.connect(window.quit_from_tray)
 
     menu = QMenu()
+    menu.addAction(tray.start_action)
+    menu.addAction(tray.stop_action)
+    menu.addSeparator()
     menu.addAction(show_action)
     menu.addSeparator()
     menu.addAction(quit_action)

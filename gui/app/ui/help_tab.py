@@ -175,5 +175,24 @@ class HelpTab(QWidget):
         ))
         root.addWidget(tips)
 
+        # --- Трей ---
+        tray_card = make_card()
+        tl3 = tray_card.layout()
+        title = QLabel("Работа из трея")
+        title.setProperty("section", True)
+        tl3.addWidget(title)
+        tl3.addWidget(_bullet(
+            "Закрытие окна сворачивает программу в трей (zapret продолжает работать).",
+        ))
+        tl3.addWidget(_bullet(
+            "В меню иконки трея — быстрые «▶ Запустить zapret» и «⏹ Остановить zapret», "
+            "показ окна и завершение программы.",
+        ))
+        tl3.addWidget(_bullet(
+            "Цвет светодиода на иконке: зелёный — работает, серый — остановлен. "
+            "Если nfqws упадёт — придёт уведомление.",
+        ))
+        root.addWidget(tray_card)
+
         root.addStretch()
         scroll.setWidget(body)

@@ -9,8 +9,9 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon, QVBoxLayout, QWidget,
 )
 
-from .zapret import Zapret
+from .zapret import Zapret, log_to_file
 from .tray import install_tray, make_icon, make_led_icon
+from .worker import CommandWorker, DaemonWorker
 from .ui.autotune_tab import AutotuneTab
 from .ui.config_tab import ConfigTab
 from .ui.credits_tab import CreditsTab
@@ -42,6 +43,8 @@ class MainWindow(QMainWindow):
         self.zapret = Zapret()
         self._tabs = []
         self._really_quit = False
+        self._tray_daemon = None
+        self._was_running = None
         self._build_ui()
         self.setWindowTitle("InIProject — Zapret Discord YouTube")
         self.resize(960, 640)
@@ -77,8 +80,77 @@ class MainWindow(QMainWindow):
         self.header_status.setToolTip(
             "zapret работает" if running else "zapret остановлен"
         )
+
+        # Уведомление о падении nfqws
+        if self._was_running is True and not running:
+            log_to_file("nfqws перестал работать")
+            if self._tray is not None:
+                self._tray.showMessage(
+                    "Zapret Discord YouTube",
+                    "nfqws остановлен или упал.",
+                    QSystemTrayIcon.Warning,
+                    4000,
+                )
+        self._was_running = running
+
         if self._tray is not None:
             self._tray.setIcon(make_led_icon(running))
+            self._tray.setToolTip(
+                f"Zapret Discord YouTube — {'работает' if running else 'остановлен'}"
+            )
+            self._tray.start_action.setEnabled(not running)
+            self._tray.stop_action.setEnabled(running)
+
+    # ------------------------------------------------------------------
+
+    def tray_start_zapret(self):
+        """Быстрый запуск из трея (фоновый демон)."""
+        if self._tray_daemon and self._tray_daemon.isRunning():
+            return
+        log_to_file("tray: запуск zapret")
+        self._tray_daemon = DaemonWorker(
+            self.zapret.daemon_cmd(), cwd=str(self.zapret.repo_root), elevated=True,
+        )
+        self._tray_daemon.failed.connect(self._on_tray_daemon_failed)
+        self._tray_daemon.start()
+        if self._tray is not None:
+            self._tray.showMessage(
+                "Zapret Discord YouTube",
+                "Запуск zapret…",
+                QSystemTrayIcon.Information,
+                1500,
+            )
+        self._update_status_indicator()
+
+    def tray_stop_zapret(self):
+        """Быстрая остановка из трея."""
+        log_to_file("tray: остановка zapret")
+        w = CommandWorker(
+            self.zapret.kill_cmd(), cwd=str(self.zapret.repo_root), elevated=True,
+        )
+        w.failed.connect(lambda msg: log_to_file(f"tray: ошибка остановки: {msg}"))
+        w.start()
+        if self._tray_daemon and self._tray_daemon.isRunning():
+            self._tray_daemon.terminate()
+            self._tray_daemon = None
+        if self._tray is not None:
+            self._tray.showMessage(
+                "Zapret Discord YouTube",
+                "zapret остановлен",
+                QSystemTrayIcon.Information,
+                1500,
+            )
+        self._update_status_indicator()
+
+    def _on_tray_daemon_failed(self, msg):
+        log_to_file(f"tray: ошибка запуска: {msg}")
+        if self._tray is not None:
+            self._tray.showMessage(
+                "Zapret Discord YouTube",
+                f"Не удалось запустить zapret: {msg}",
+                QSystemTrayIcon.Critical,
+                4000,
+            )
 
     # ------------------------------------------------------------------
 
@@ -198,6 +270,8 @@ class MainWindow(QMainWindow):
                 3000,
             )
             return
+        if self._tray_daemon and self._tray_daemon.isRunning():
+            self._tray_daemon.terminate()
         for tab in self._tabs:
             if hasattr(tab, "daemon") and tab.daemon and tab.daemon.isRunning():
                 tab.daemon.terminate()
