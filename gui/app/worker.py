@@ -3,6 +3,8 @@
 # =============================================================================
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
+import os
+import signal
 import subprocess
 
 from PySide6.QtCore import QThread, Signal
@@ -11,6 +13,24 @@ from .zapret import log_to_file
 
 PASSWORD_HINT = ("Требуется пароль sudo (NOPASSWD не настроен). "
                  "Откройте вкладку «Права» и настройте работу без пароля.")
+
+
+def _kill_tree(proc):
+    """Завершает весь процесс-дерево (запускается в отдельной process group).
+
+    Только terminate() убивает родителя, а потомки (например, `sleep infinity`
+    из service.sh daemon) продолжают держать pipe stdout, из-за чего поток
+    DaemonWorker вечно ждёт EOF и не завершается.
+    """
+    if proc is None or proc.poll() is not None:
+        return
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    except (OSError, ProcessLookupError):
+        try:
+            proc.terminate()
+        except OSError:
+            pass
 
 
 class CommandWorker(QThread):
@@ -46,6 +66,7 @@ class CommandWorker(QThread):
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 stdin=subprocess.PIPE if stdin_data is not None else subprocess.DEVNULL,
                 text=True, bufsize=1, encoding="utf-8", errors="replace",
+                start_new_session=True,
             )
             if stdin_data is not None:
                 self._proc.stdin.write(stdin_data)
@@ -77,8 +98,7 @@ class CommandWorker(QThread):
             self.failed.emit(f"Команда завершилась с кодом {rc}")
 
     def stop(self):
-        if self._proc and self._proc.poll() is None:
-            self._proc.terminate()
+        _kill_tree(self._proc)
 
 
 class DaemonWorker(QThread):
@@ -103,6 +123,7 @@ class DaemonWorker(QThread):
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 text=True, bufsize=1, encoding="utf-8", errors="replace",
+                start_new_session=True,
             )
         except Exception as exc:
             self.failed.emit(str(exc))
@@ -117,6 +138,5 @@ class DaemonWorker(QThread):
         self.stopped.emit()
 
     def terminate(self):
-        if self._proc and self._proc.poll() is None:
-            self._proc.terminate()
+        _kill_tree(self._proc)
 

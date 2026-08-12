@@ -147,6 +147,7 @@ class StatusTab(QWidget):
 
     def _start_daemon(self):
         if self.daemon and self.daemon.isRunning():
+            self.append_log("! демон уже запущен")
             return
         self.append_log("> запуск демона (sudo service.sh daemon)")
         self.daemon = DaemonWorker(
@@ -159,6 +160,7 @@ class StatusTab(QWidget):
 
     def _on_daemon_stopped(self):
         self.append_log("> демон остановлен")
+        self.daemon = None
         self.refresh_status()
 
     def _on_daemon_failed(self, msg):
