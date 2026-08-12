@@ -6,9 +6,22 @@
 import os
 import re
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+GUI_LOG = Path.home() / ".cache" / "zapret-gui" / "gui.log"
+
+
+def log_to_file(text):
+    """Пишет строку в лог GUI (~/.cache/zapret-gui/gui.log). Никогда не бросает."""
+    try:
+        GUI_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with open(GUI_LOG, "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {text}\n")
+    except OSError:
+        pass
 
 
 class Zapret:
@@ -129,8 +142,25 @@ class Zapret:
     def service_status_code(self):
         """Код статуса сервиса: 1 = не установлен, 2 = активен, 3 = установлен но не активен.
 
-        Парсим вывод, т.к. CLI маскирует exit-код через `|| true`.
+        На systemd опрашиваем systemctl напрямую (без разбора русского текста),
+        иначе — парсим вывод CLI (exit-код там маскируется через `|| true`).
         """
+        unit = "zapret_discord_youtube"
+        if self.init_system() == "systemd":
+            try:
+                state = subprocess.run(
+                    ["systemctl", "is-active", unit],
+                    capture_output=True, text=True, timeout=15,
+                ).stdout.strip()
+            except Exception:
+                state = ""
+            if state == "active":
+                return 2
+            for p in (f"/etc/systemd/system/{unit}.service",
+                      f"/usr/lib/systemd/system/{unit}.service"):
+                if os.path.exists(p):
+                    return 3
+            return 1
         proc = self._run(["service", "status"])
         out = proc.stdout + proc.stderr
         if "не установлен" in out:

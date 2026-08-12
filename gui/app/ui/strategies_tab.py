@@ -4,7 +4,8 @@
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
 from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QListWidget, QPlainTextEdit, QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QListWidget, QPlainTextEdit, QProgressBar,
+    QVBoxLayout, QWidget,
 )
 
 from ..zapret import Zapret
@@ -51,6 +52,11 @@ class StrategiesTab(QWidget):
         bl.addWidget(self.strategies_btn)
         bl.addWidget(self.nfqws_btn)
         cl.addWidget(btn_row)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+        self.progress.setVisible(False)
+        cl.addWidget(self.progress)
 
         root.addWidget(card, 1)
 
@@ -100,6 +106,7 @@ class StrategiesTab(QWidget):
 
     def _run(self, cmd, button):
         button.setEnabled(False)
+        self.progress.setVisible(True)
         self._worker = CommandWorker(cmd, cwd=str(self.z.repo_root), elevated=True)
         self._worker.output.connect(self.append_log)
         self._worker.failed.connect(lambda msg: self._on_failed(msg, button))
@@ -108,11 +115,13 @@ class StrategiesTab(QWidget):
 
     def _on_done(self, button):
         button.setEnabled(True)
+        self.progress.setVisible(False)
         self.append_log("> готово")
         self.reload_strategies()
 
     def _on_failed(self, msg, button):
         button.setEnabled(True)
+        self.progress.setVisible(False)
         self.append_log(f"! ошибка: {msg}")
 
     def append_log(self, text):

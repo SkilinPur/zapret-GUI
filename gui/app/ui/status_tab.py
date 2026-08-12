@@ -5,7 +5,7 @@
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QComboBox, QHBoxLayout, QLabel, QPlainTextEdit, QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget,
 )
 
 from ..zapret import Zapret
@@ -15,7 +15,7 @@ from .widgets import log_line, make_button, make_card, make_title
 MODE_DAEMON = 0
 MODE_SERVICE = 1
 
-_RUNNING_COLOR = "#e53935"
+_RUNNING_COLOR = "#66bb6a"
 _STOPPED_COLOR = "#616161"
 
 
@@ -64,14 +64,19 @@ class StatusTab(QWidget):
         mode_row = QWidget()
         ml = QHBoxLayout(mode_row)
         ml.setContentsMargins(0, 0, 0, 0)
-        ml.setSpacing(12)
+        ml.setSpacing(8)
         mode_lbl = QLabel("Режим запуска:")
         mode_lbl.setProperty("section", True)
-        self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["Фоновый демон", "systemd-сервис"])
-        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
-        ml.addWidget(mode_lbl)
-        ml.addWidget(self.mode_combo)
+        self.mode_btns = []
+        for idx, text in enumerate(["Фоновый демон", "systemd-сервис"]):
+            btn = QPushButton(text)
+            btn.setCheckable(True)
+            btn.setProperty("modeBtn", True)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(lambda _=False, i=idx: self._on_mode_changed())
+            self.mode_btns.append(btn)
+            ml.addWidget(btn)
+        self.mode_btns[MODE_DAEMON].setChecked(True)
         ml.addStretch()
         sc.addWidget(mode_row)
 
@@ -116,19 +121,27 @@ class StatusTab(QWidget):
     def _on_mode_changed(self):
         self.refresh_status()
 
+    def _mode_index(self):
+        for idx, btn in enumerate(self.mode_btns):
+            if btn.isChecked():
+                return idx
+        return MODE_DAEMON
+
     def start_zapret(self):
         self.append_log("> запрос на запуск")
-        if self.mode_combo.currentIndex() == MODE_DAEMON:
+        if self._mode_index() == MODE_DAEMON:
             self._start_daemon()
         else:
-            self._run_worker(self.z.service_cmd("start"), elevated=True)
+            self._run_worker(self.z.service_cmd("start"), elevated=True,
+                             busy=self.start_btn)
 
     def stop_zapret(self):
         self.append_log("> запрос на остановку")
-        if self.mode_combo.currentIndex() == MODE_DAEMON:
+        if self._mode_index() == MODE_DAEMON:
             self._stop_daemon()
         else:
-            self._run_worker(self.z.service_cmd("stop"), elevated=True)
+            self._run_worker(self.z.service_cmd("stop"), elevated=True,
+                             busy=self.stop_btn)
 
     # --- Фоновый демон ---
 
@@ -162,14 +175,17 @@ class StatusTab(QWidget):
 
     # --- Универсальный воркер ---
 
-    def _run_worker(self, cmd, elevated=False, after=None):
+    def _run_worker(self, cmd, elevated=False, after=None, busy=None):
         if self._current_worker and self._current_worker.isRunning():
             self.append_log("! предыдущая команда ещё выполняется")
             return
+        if busy is not None:
+            busy.setEnabled(False)
+            busy.setText("выполняется…")
         w = CommandWorker(cmd, cwd=str(self.z.repo_root), elevated=elevated)
         w.output.connect(self.append_log)
         w.failed.connect(self._on_worker_failed)
-        w.success.connect(lambda _: self._finish_worker(after))
+        w.success.connect(lambda _: self._finish_worker(after, busy))
         w.start()
         self._current_worker = w
 
@@ -178,8 +194,10 @@ class StatusTab(QWidget):
         self._current_worker = None
         self.refresh_status()
 
-    def _finish_worker(self, after=None):
+    def _finish_worker(self, after=None, busy=None):
         self._current_worker = None
+        if busy is not None:
+            busy.setText("▶ Старт" if busy is self.start_btn else "⏹ Стоп")
         if after:
             after()
         else:

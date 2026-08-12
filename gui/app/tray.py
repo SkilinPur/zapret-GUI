@@ -28,13 +28,30 @@ def make_icon():
     return QIcon(pm)
 
 
+def make_led_icon(running=True):
+    """Иконка трея со светодиодом статуса: зелёный = работает, серый = остановлен."""
+    pm = QPixmap(64, 64)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.Antialiasing)
+    p.setPen(Qt.NoPen)
+    p.setBrush(QColor("#7C5CFC"))
+    p.drawRoundedRect(4, 4, 56, 56, 16, 16)
+
+    led = QColor("#66bb6a") if running else QColor("#616161")
+    p.setBrush(led)
+    p.drawEllipse(20, 20, 24, 24)
+    p.end()
+    return QIcon(pm)
+
+
 def install_tray(window):
     """Создаёт иконку в системном трее. Возвращает объект или None."""
     if not QSystemTrayIcon.isSystemTrayAvailable():
         return None
 
     app = QApplication.instance()
-    tray = QSystemTrayIcon(make_icon(), app)
+    tray = QSystemTrayIcon(make_led_icon(False), app)
     tray.setToolTip("Zapret Discord YouTube")
 
     show_action = QAction("Показать окно", tray)

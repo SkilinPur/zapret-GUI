@@ -4,8 +4,8 @@
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
 from PySide6.QtWidgets import (
-    QCheckBox, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QVBoxLayout,
-    QWidget,
+    QCheckBox, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QProgressBar,
+    QVBoxLayout, QWidget,
 )
 
 from ..zapret import Zapret
@@ -89,6 +89,11 @@ class AutotuneTab(QWidget):
         bl.addStretch()
         rl.addWidget(btn_row)
 
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+        self.progress.setVisible(False)
+        rl.addWidget(self.progress)
+
         root.addWidget(res_card, 1)
 
         self.yt_btn.clicked.connect(self.run_youtube)
@@ -102,6 +107,7 @@ class AutotuneTab(QWidget):
             return
         self.append_log("> запуск auto_tune_youtube.sh (долго, не прерывайте)")
         self.yt_btn.setEnabled(False)
+        self.progress.setVisible(True)
         self._worker = CommandWorker(
             self.z.autotune_youtube_cmd(), cwd=str(self.z.repo_root), elevated=True,
         )
@@ -120,6 +126,7 @@ class AutotuneTab(QWidget):
         cmd, stdin = self.z.autotune_cmd(domains, self.quic_check.isChecked())
         self.append_log(f"> проверка доменов: {domains}")
         self.dom_btn.setEnabled(False)
+        self.progress.setVisible(True)
         self._worker = CommandWorker(
             cmd, cwd=str(self.z.repo_root), elevated=True, stdin=stdin,
         )
@@ -131,12 +138,14 @@ class AutotuneTab(QWidget):
     def _on_done(self, _):
         self.yt_btn.setEnabled(True)
         self.dom_btn.setEnabled(True)
+        self.progress.setVisible(False)
         self.append_log("> готово")
         self.refresh_results()
 
     def _on_failed(self, msg):
         self.yt_btn.setEnabled(True)
         self.dom_btn.setEnabled(True)
+        self.progress.setVisible(False)
         self.append_log(f"! ошибка: {msg}")
 
     def refresh_results(self):

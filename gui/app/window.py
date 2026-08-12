@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from .zapret import Zapret
-from .tray import install_tray, make_icon
+from .tray import install_tray, make_icon, make_led_icon
 from .ui.autotune_tab import AutotuneTab
 from .ui.config_tab import ConfigTab
 from .ui.credits_tab import CreditsTab
@@ -22,15 +22,15 @@ from .ui.strategies_tab import StrategiesTab
 from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
-    ("Как пользоваться", HelpTab),
-    ("Статус", StatusTab),
-    ("Конфигурация", ConfigTab),
-    ("Стратегии", StrategiesTab),
-    ("Обновление", UpdateTab),
-    ("Сервис", ServiceTab),
-    ("Автоподбор", AutotuneTab),
-    ("Права", PermissionsTab),
-    ("Авторство", CreditsTab),
+    ("📖 Как пользоваться", HelpTab),
+    ("🟢 Статус", StatusTab),
+    ("⚙️ Конфигурация", ConfigTab),
+    ("📁 Стратегии", StrategiesTab),
+    ("⬆️ Обновление", UpdateTab),
+    ("🛠️ Сервис", ServiceTab),
+    ("🎯 Автоподбор", AutotuneTab),
+    ("🔑 Права", PermissionsTab),
+    ("👥 Авторство", CreditsTab),
 ]
 
 SIDEBAR_WIDTH = 190
@@ -49,15 +49,36 @@ class MainWindow(QMainWindow):
 
         self._tray = install_tray(self)
 
+        # Индикатор статуса в шапке и трее обновляем раз в 3 секунды
+        self._status_timer = QTimer(self)
+        self._status_timer.timeout.connect(self._update_status_indicator)
+        self._status_timer.start(3000)
+        self._update_status_indicator()
+
         QTimer.singleShot(1200, self._auto_check_updates)
 
     # ------------------------------------------------------------------
 
     def _auto_check_updates(self):
+        # Тихая проверка при старте — без всплывающего диалога.
         for tab in self._tabs:
             if isinstance(tab, UpdateTab):
-                tab.check_now(show_dialog=True)
+                tab.check_now(show_dialog=False)
                 break
+
+    # ------------------------------------------------------------------
+
+    def _update_status_indicator(self):
+        running = self.zapret.nfqws_running()
+        color = "#66bb6a" if running else "#616161"
+        self.header_status.setStyleSheet(
+            f"color: {color}; font-size: 20px; font-weight: bold;"
+        )
+        self.header_status.setToolTip(
+            "zapret работает" if running else "zapret остановлен"
+        )
+        if self._tray is not None:
+            self._tray.setIcon(make_led_icon(running))
 
     # ------------------------------------------------------------------
 
@@ -95,10 +116,14 @@ class MainWindow(QMainWindow):
         subtitle = QLabel("Zapret Discord YouTube — обход замедления")
         subtitle.setObjectName("subtitleLabel")
 
+        self.header_status = QLabel("●")
+        self.header_status.setObjectName("headerStatus")
+
         layout.addWidget(brand)
         layout.addSpacing(8)
         layout.addWidget(subtitle)
         layout.addStretch()
+        layout.addWidget(self.header_status)
 
         return header
 
@@ -114,7 +139,7 @@ class MainWindow(QMainWindow):
         self.nav = QListWidget()
         self.nav.setObjectName("sidebarList")
         for name, _ in NAV_ITEMS:
-            self.nav.addItem(f"  {name}")
+            self.nav.addItem(f"{name}")
 
         layout.addWidget(self.nav, 1)
 

@@ -7,6 +7,11 @@ import subprocess
 
 from PySide6.QtCore import QThread, Signal
 
+from .zapret import log_to_file
+
+PASSWORD_HINT = ("Требуется пароль sudo (NOPASSWD не настроен). "
+                 "Откройте вкладку «Права» и настройте работу без пароля.")
+
 
 class CommandWorker(QThread):
     """Выполняет команду до завершения, стримит вывод построчно."""
@@ -23,6 +28,7 @@ class CommandWorker(QThread):
         self._password = password
         self._stdin = stdin
         self._proc = None
+        self._needs_password_hint = False
 
     def run(self):
         stdin_data = self._stdin
@@ -54,11 +60,19 @@ class CommandWorker(QThread):
             return
 
         for line in self._proc.stdout:
-            self.output.emit(line.rstrip("\n"))
+            line = line.rstrip("\n")
+            log_to_file(f"{' '.join(cmd)}: {line}")
+            if ("password is required" in line.lower()
+                    or "a password is required" in line.lower()
+                    or "пароль" in line.lower()):
+                self._needs_password_hint = True
+            self.output.emit(line)
 
         rc = self._proc.wait()
         if rc == 0:
             self.success.emit("")
+        elif self._needs_password_hint:
+            self.failed.emit(PASSWORD_HINT)
         else:
             self.failed.emit(f"Команда завершилась с кодом {rc}")
 
@@ -95,7 +109,9 @@ class DaemonWorker(QThread):
             return
 
         for line in self._proc.stdout:
-            self.output.emit(line.rstrip("\n"))
+            line = line.rstrip("\n")
+            log_to_file(f"{' '.join(cmd)}: {line}")
+            self.output.emit(line)
 
         self._proc.wait()
         self.stopped.emit()

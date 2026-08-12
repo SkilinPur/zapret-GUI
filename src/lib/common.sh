@@ -83,7 +83,12 @@ check_conf_file() {
 
     # firewall_backend опционален — по умолчанию auto
     if ! grep -q "^firewall_backend=" "$conf_file"; then
-        echo "firewall_backend=auto" >> "$conf_file"
+        if [[ -w "$conf_file" ]]; then
+            echo "firewall_backend=auto" >> "$conf_file"
+        elif type elevate >/dev/null 2>&1 && type is_root >/dev/null 2>&1 && ! is_root; then
+            # Файл мог быть создан от root — дописываем через elevate
+            elevate bash -c "echo 'firewall_backend=auto' >> '$conf_file'" 2>/dev/null || true
+        fi
     fi
 
     return 0

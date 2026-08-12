@@ -25,7 +25,7 @@ COLORS = {
 
 QSS = """
 * {
-    font-family: 'Cantarell', 'Ubuntu', 'DejaVu Sans', 'Noto Sans', sans-serif;
+    font-family: 'Inter', 'Roboto', 'Cantarell', 'Ubuntu', 'DejaVu Sans', 'Noto Sans', sans-serif;
     color: #d1d1d1;
     outline: none;
 }
@@ -50,6 +50,11 @@ QMainWindow, #rootWidget {
 #subtitleLabel {
     color: #9e9e9e;
     font-size: 13px;
+}
+
+#headerStatus {
+    color: #616161;
+    font-size: 20px;
 }
 
 #valueLabel {
@@ -209,6 +214,27 @@ QPushButton[accent="true"] {
 
 QPushButton[accent="true"]:hover {
     background-color: rgba(229, 57, 53, 0.15);
+}
+
+/* ---------- Segmented control (режим запуска) ---------- */
+QPushButton[modeBtn="true"] {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #33333a;
+    background-color: #1a1a1e;
+    color: #9e9e9e;
+    font-weight: bold;
+}
+
+QPushButton[modeBtn="true"]:hover {
+    border-color: #e53935;
+    color: #d1d1d1;
+}
+
+QPushButton[modeBtn="true"]:checked {
+    background-color: rgba(229, 57, 53, 0.2);
+    border-color: #e53935;
+    color: #e53935;
 }
 
 /* ---------- Поля и выбор ---------- */

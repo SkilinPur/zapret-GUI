@@ -36,6 +36,7 @@ declare -a WORKING_STRATEGIES=()  # Рабочие стратегии (номе�
 TESTED_COUNT=0
 SUCCESS_COUNT=0
 FAILED_COUNT=0
+RUN_PID=""                        # PID фонового `service.sh run`
 
 # ═══════════════════════════════════════════════════════════
 # ФУНКЦИИ: Работа со стратегиями
@@ -72,6 +73,11 @@ get_name_from_entry() {
 
 stop_zapret() {
     "$SERVICE_SCRIPT" kill 2>/dev/null
+    # Гасим фоновый `service.sh run`, чтобы не накапливать спящие процессы
+    if [[ -n "$RUN_PID" ]]; then
+        kill "$RUN_PID" 2>/dev/null || true
+        RUN_PID=""
+    fi
     sleep 1
 }
 
@@ -79,6 +85,7 @@ run_strategy() {
     local strategy_name="$1"
     # Запускаем через service.sh run с параметрами
     "$SERVICE_SCRIPT" run -s "$strategy_name" -i any >/dev/null 2>&1 &
+    RUN_PID=$!
     sleep "$WAIT_TIME"
 }
 
