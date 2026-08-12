@@ -216,7 +216,7 @@ class ServiceTab(QWidget):
         if self.z.init_system() == "systemd":
             cmd = ["journalctl", "-u", SERVICE_NAME, "-n", "200", "--no-pager"]
         else:
-            cmd = ["journalctl", "-u", SERVICE_NAME, "-n", "200", "--no-pager"]
+            cmd = ["tail", "-n", "200", f"/var/log/{SERVICE_NAME}.log"]
         self.append_log("> чтение логов...")
         self._worker = CommandWorker(cmd, elevated=True)
         self._worker.output.connect(self.append_log)

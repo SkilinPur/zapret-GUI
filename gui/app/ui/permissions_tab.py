@@ -111,7 +111,6 @@ class PermissionsTab(QWidget):
             self.append_log("! отменено")
             return
         self._start_worker(user, elevated=False, password=password)
-        password = ""
 
     def _start_worker(self, user, elevated=False, password=None):
         self._worker = CommandWorker(

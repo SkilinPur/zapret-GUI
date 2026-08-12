@@ -40,7 +40,7 @@ class Zapret:
         sudo -n bash service.sh <что-то>."""
         try:
             p = subprocess.run(
-                ["sudo", "-n", self.bash, str(self.service), "status"],
+                ["sudo", "-n", self.bash, str(self.service), "service", "status"],
                 capture_output=True, timeout=15,
             )
             return p.returncode == 0
@@ -135,9 +135,9 @@ class Zapret:
         out = proc.stdout + proc.stderr
         if "не установлен" in out:
             return 1
-        if "активен" in out:
-            return 2
-        return 3
+        if "не активен" in out:
+            return 3
+        return 2
 
     def service_status_output(self):
         proc = self._run(["service", "status"])

@@ -168,10 +168,15 @@ class StatusTab(QWidget):
             return
         w = CommandWorker(cmd, cwd=str(self.z.repo_root), elevated=elevated)
         w.output.connect(self.append_log)
-        w.failed.connect(lambda msg: self.append_log(f"! {msg}"))
+        w.failed.connect(self._on_worker_failed)
         w.success.connect(lambda _: self._finish_worker(after))
         w.start()
         self._current_worker = w
+
+    def _on_worker_failed(self, msg):
+        self.append_log(f"! {msg}")
+        self._current_worker = None
+        self.refresh_status()
 
     def _finish_worker(self, after=None):
         self._current_worker = None
