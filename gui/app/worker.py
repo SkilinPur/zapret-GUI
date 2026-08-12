@@ -4,6 +4,7 @@
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
 import os
+import select
 import signal
 import subprocess
 
@@ -16,14 +17,9 @@ PASSWORD_HINT = ("Требуется пароль sudo (NOPASSWD не настр
 
 
 def _kill_tree(proc):
-    """Завершает весь процесс-дерево (запускается в отдельной process group).
-
-    Только terminate() убивает родителя, а потомки (например, `sleep infinity`
-    из service.sh daemon) продолжают держать pipe stdout, из-за чего поток
-    DaemonWorker вечно ждёт EOF и не завершается.
-    """
+    """Завершает дерево процессов (process group). Возвращает сам proc."""
     if proc is None or proc.poll() is not None:
-        return
+        return proc
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
     except (OSError, ProcessLookupError):
@@ -31,6 +27,7 @@ def _kill_tree(proc):
             proc.terminate()
         except OSError:
             pass
+    return proc
 
 
 class CommandWorker(QThread):
@@ -48,6 +45,7 @@ class CommandWorker(QThread):
         self._password = password
         self._stdin = stdin
         self._proc = None
+        self._stop_requested = False
         self._needs_password_hint = False
 
     def run(self):
@@ -80,16 +78,12 @@ class CommandWorker(QThread):
             self.failed.emit(str(exc))
             return
 
-        for line in self._proc.stdout:
-            line = line.rstrip("\n")
-            log_to_file(f"{' '.join(cmd)}: {line}")
-            if ("password is required" in line.lower()
-                    or "a password is required" in line.lower()
-                    or "пароль" in line.lower()):
-                self._needs_password_hint = True
-            self.output.emit(line)
+        self._read_stream(self._proc.stdout, cmd, self._emit_worker_line)
 
-        rc = self._proc.wait()
+        try:
+            rc = self._proc.wait()
+        except Exception:
+            rc = -1
         if rc == 0:
             self.success.emit("")
         elif self._needs_password_hint:
@@ -97,7 +91,42 @@ class CommandWorker(QThread):
         else:
             self.failed.emit(f"Команда завершилась с кодом {rc}")
 
+    def _emit_worker_line(self, line):
+        if ("password is required" in line.lower()
+                or "a password is required" in line.lower()
+                or "пароль" in line.lower()):
+            self._needs_password_hint = True
+        self.output.emit(line)
+
+    def _read_stream(self, stream, cmd, emit):
+        """Читает stdout неблокирующе: раз в 0.2 с проверяет флаг остановки.
+
+        Иначе демонизированный потомок (setsid, например nfqws), ушедший из
+        process group, вечно держит pipe и поток никогда не завершается.
+        """
+        try:
+            fd = stream.fileno()
+        except (ValueError, OSError):
+            return
+        while not self._stop_requested:
+            try:
+                ready, _, _ = select.select([fd], [], [], 0.2)
+            except (ValueError, OSError):
+                break
+            if not ready:
+                continue
+            try:
+                line = stream.readline()
+            except (ValueError, OSError):
+                break
+            if not line:
+                break
+            line = line.rstrip("\n")
+            log_to_file(f"{' '.join(cmd)}: {line}")
+            emit(line)
+
     def stop(self):
+        self._stop_requested = True
         _kill_tree(self._proc)
 
 
@@ -114,6 +143,7 @@ class DaemonWorker(QThread):
         self._cwd = cwd
         self._elevated = elevated
         self._proc = None
+        self._stop_requested = False
 
     def run(self):
         cmd = (["sudo", "-n"] if self._elevated else []) + self._cmd
@@ -129,14 +159,40 @@ class DaemonWorker(QThread):
             self.failed.emit(str(exc))
             return
 
-        for line in self._proc.stdout:
-            line = line.rstrip("\n")
-            log_to_file(f"{' '.join(cmd)}: {line}")
-            self.output.emit(line)
+        self._read_stream(self._proc.stdout, cmd, self._emit_daemon_line)
 
-        self._proc.wait()
+        try:
+            self._proc.wait()
+        except Exception:
+            pass
         self.stopped.emit()
 
+    def _emit_daemon_line(self, line):
+        self.output.emit(line)
+
+    def _read_stream(self, stream, cmd, emit):
+        try:
+            fd = stream.fileno()
+        except (ValueError, OSError):
+            return
+        while not self._stop_requested:
+            try:
+                ready, _, _ = select.select([fd], [], [], 0.2)
+            except (ValueError, OSError):
+                break
+            if not ready:
+                continue
+            try:
+                line = stream.readline()
+            except (ValueError, OSError):
+                break
+            if not line:
+                break
+            line = line.rstrip("\n")
+            log_to_file(f"{' '.join(cmd)}: {line}")
+            emit(line)
+
     def terminate(self):
+        self._stop_requested = True
         _kill_tree(self._proc)
 

@@ -59,11 +59,13 @@ class MainWindow(QMainWindow):
         self._status_timer.start(3000)
         self._update_status_indicator()
 
-        QTimer.singleShot(1200, self._auto_check_updates)
+        self._auto_check_timer = QTimer.singleShot(1200, self._auto_check_updates)
 
     # ------------------------------------------------------------------
 
     def _auto_check_updates(self):
+        if self._really_quit:
+            return
         # Тихая проверка при старте — без всплывающего диалога.
         for tab in self._tabs:
             if isinstance(tab, UpdateTab):
@@ -289,6 +291,12 @@ class MainWindow(QMainWindow):
             self._stop_thread(getattr(tab, "daemon", None))
             for attr in ("_worker", "_current_worker", "_checker"):
                 self._stop_thread(getattr(tab, attr, None))
+
+        # Останавливаем таймеры, чтобы они не сработали после закрытия окна
+        self._status_timer.stop()
+        if self._auto_check_timer is not None:
+            self._auto_check_timer.stop()
+            self._auto_check_timer = None
         event.accept()
 
     @staticmethod
