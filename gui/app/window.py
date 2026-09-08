@@ -22,8 +22,8 @@ from .ui.status_tab import StatusTab
 from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
-    ("🟢 Статус", StatusTab),
     ("📖 Как пользоваться", HelpTab),
+    ("🟢 Статус", StatusTab),
     ("⚙️ Конфигурация", ConfigTab),
     ("⬆️ Обновление", UpdateTab),
     ("🛠️ Сервис", ServiceTab),
