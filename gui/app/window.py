@@ -264,6 +264,9 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         for name, tab_cls in NAV_ITEMS:
             tab = tab_cls(self.zapret)
+            # Мастеру (в справке) нужен способ запуска демона от окна
+            if hasattr(tab, "request_start"):
+                tab.request_start = self.tray_start_zapret
             self._tabs.append(tab)
             self.stack.addWidget(tab)
             if isinstance(tab, UpdateTab):

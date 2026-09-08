@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QFrame, QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget,
 )
 
-from .widgets import make_card, make_title
+from .widgets import make_button, make_card, make_title
 
 
 def _step(num, text):
@@ -52,7 +52,20 @@ def _bullet(text):
 class HelpTab(QWidget):
     def __init__(self, zapret=None, parent=None):
         super().__init__(parent)
+        self.z = zapret
+        self.request_start = None
         self._build_ui()
+
+    # ------------------------------------------------------------------
+
+    def _run_wizard(self):
+        from .wizard import FirstRunWizard
+        if self.z is None:
+            return
+        wiz = FirstRunWizard(
+            self.z, request_start=self.request_start, parent=self,
+        )
+        wiz.exec()
 
     # ------------------------------------------------------------------
 
@@ -121,6 +134,25 @@ class HelpTab(QWidget):
             "попробуйте другие стратегии или автоподбор.",
         ))
         root.addWidget(quick)
+
+        # --- Мастер настройки ---
+        wizard_card = make_card()
+        wl = wizard_card.layout()
+        wtitle = QLabel("Мастер настройки")
+        wtitle.setProperty("section", True)
+        wl.addWidget(wtitle)
+        wdesc = QLabel(
+            "Пошагово проведёт по настройке: права, ядро, способ обхода, запуск. "
+            "Удобно на новом компьютере или если что-то перестало работать."
+        )
+        wdesc.setProperty("subtitle", True)
+        wdesc.setWordWrap(True)
+        wl.addWidget(wdesc)
+        self.wizard_btn = make_button("🚀 Открыть мастер настройки", primary=True)
+        self.wizard_btn.setMinimumWidth(280)
+        wl.addWidget(self.wizard_btn)
+        self.wizard_btn.clicked.connect(self._run_wizard)
+        root.addWidget(wizard_card)
 
         # --- Вкладки ---
         tabs = make_card()
