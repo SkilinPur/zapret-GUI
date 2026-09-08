@@ -58,9 +58,28 @@ class ConfigTab(QWidget):
         gfl = QVBoxLayout(gf_row)
         gfl.setContentsMargins(0, 0, 0, 0)
         self.gt_check = QCheckBox("GameFilterTCP (игровые порты TCP)")
+        self.gt_check.setToolTip(
+            "Обход замедления для TCP-трафика игр (порты 1024–65535 по полному "
+            "списку IP). Включайте, если игра или её лаунчер не работают "
+            "при включённом zapret."
+        )
         self.gu_check = QCheckBox("GameFilterUDP (игровые порты UDP)")
+        self.gu_check.setToolTip(
+            "Обход замедления для UDP-трафика игр (игровой трафик, голос). "
+            "Включайте, если голос/матчи в играх не работают при включённом zapret."
+        )
         gfl.addWidget(self.gt_check)
         gfl.addWidget(self.gu_check)
+        gf_hint = QLabel(
+            "Зачем: zapret по умолчанию обходит только 80/443 и список сайтов. "
+            "GameFilter дополнительно обрабатывает игровой трафик, который идёт "
+            "не через 80/443 (порты 1024–65535 по полному IP-списку): TCP — "
+            "соединения и лаунчеры, UDP — матчи и голос. Обычно не нужен — "
+            "включайте, если игры не работают при активном zapret."
+        )
+        gf_hint.setObjectName("statusMetaLabel")
+        gf_hint.setWordWrap(True)
+        gfl.addWidget(gf_hint)
         cl.addWidget(add_row("GameFilter", gf_row))
 
         btn_row = QWidget()
