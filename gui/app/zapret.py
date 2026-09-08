@@ -100,6 +100,21 @@ class Zapret:
                     cfg[k.strip()] = v.strip()
         return cfg
 
+    def set_strategy(self, name):
+        """Меняет только поле strategy в conf.env. Возвращает (ok, ошибка)."""
+        try:
+            text = ""
+            if self.conf_file.exists():
+                text = self.conf_file.read_text(encoding="utf-8")
+            new, count = re.subn(r"(?m)^strategy\s*=.*$", f"strategy={name}", text)
+            if count == 0:
+                sep = "" if (new and new.endswith("\n")) else "\n"
+                new = new + f"{sep}strategy={name}\n"
+            self.conf_file.write_text(new, encoding="utf-8")
+            return True, ""
+        except Exception as exc:
+            return False, str(exc)
+
     def config_set_cmd(self, strategy, interface, gamefiltertcp, gamefilterudp,
                        firewall_backend="auto", restart=True):
         args = ["config", "set", strategy, interface]

@@ -3,7 +3,7 @@
 # =============================================================================
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QListWidget, QMainWindow, QStackedWidget,
     QSystemTrayIcon, QVBoxLayout, QWidget,
@@ -51,6 +51,9 @@ class MainWindow(QMainWindow):
 
         self._tray = install_tray(self)
 
+        # Мастер первого запуска
+        QTimer.singleShot(500, self._maybe_show_wizard)
+
         # Индикатор статуса в шапке и трее обновляем раз в 3 секунды
         self._status_timer = QTimer(self)
         self._status_timer.timeout.connect(self._update_status_indicator)
@@ -58,6 +61,19 @@ class MainWindow(QMainWindow):
         self._update_status_indicator()
 
         self._auto_check_timer = QTimer.singleShot(1200, self._auto_check_updates)
+
+    # ------------------------------------------------------------------
+
+    def _maybe_show_wizard(self):
+        if self._really_quit:
+            return
+        if QSettings().value("wizard/done", False, type=bool):
+            return
+        from .ui.wizard import FirstRunWizard
+        wiz = FirstRunWizard(
+            self.zapret, request_start=self.tray_start_zapret, parent=self,
+        )
+        wiz.exec()
 
     # ------------------------------------------------------------------
 
