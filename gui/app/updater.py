@@ -9,10 +9,40 @@ import urllib.request
 
 from PySide6.QtCore import QThread, Signal
 
-APP_VERSION = "1.0.23"
+APP_VERSION = "1.0.24"
 GITHUB_REPO = "SkilinPur/zapret-GUI"
 API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 REPO_GIT_URL = f"https://github.com/{GITHUB_REPO}.git"
+
+ZAPRET_REPO = "bol-van/zapret"
+ZAPRET_LATEST_API = f"https://api.github.com/repos/{ZAPRET_REPO}/releases/latest"
+FLOWSEAL_GIT_URL = "https://github.com/Flowseal/zapret-discord-youtube.git"
+
+
+def _http_json(url):
+    req = urllib.request.Request(url, headers={"User-Agent": f"zapret-gui/{APP_VERSION}"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.load(resp)
+
+
+def latest_zapret_tag():
+    """Последний релиз ядра bol-van/zapret (например v72.13)."""
+    try:
+        return _http_json(ZAPRET_LATEST_API).get("tag_name") or ""
+    except Exception:
+        return ""
+
+
+def git_head(url):
+    """HEAD удалённого репозитория (для Flowseal — свежая ревизия стратегий)."""
+    try:
+        out = subprocess.check_output(
+            ["git", "ls-remote", url, "HEAD"],
+            timeout=15, text=True, stderr=subprocess.DEVNULL,
+        )
+        return out.split()[0] if out.split() else ""
+    except Exception:
+        return ""
 
 
 def parse_version(text):
@@ -111,3 +141,17 @@ def git_pull_cmd(repo_root):
     except Exception:
         pass
     return ["git", "pull", "--ff-only", remote, branch]
+
+
+class ComponentsWorker(QThread):
+    """В фоне узнаёт последние версии ядра nfqws и стратегий Flowseal."""
+
+    result = Signal(object)  # (zapret_tag, flowseal_head, error)
+
+    def run(self):
+        zapret_tag = latest_zapret_tag()
+        flowseal_head = git_head(FLOWSEAL_GIT_URL)
+        if not zapret_tag and not flowseal_head:
+            self.result.emit(("", "", "не удалось получить версии компонентов"))
+            return
+        self.result.emit((zapret_tag, flowseal_head, ""))

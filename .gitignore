@@ -2,6 +2,7 @@ zapret-latest/bin
 zapret-latest/lists/*-user.txt
 zapret-latest/service.bat
 /bin
+.flowseal-rev
 user-lists
 AGENTS.md
 conf.env

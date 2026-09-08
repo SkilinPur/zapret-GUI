@@ -230,6 +230,37 @@ class Zapret:
         p = Path.home() / ".local" / "share" / "applications" / "zapret-discord-youtube-gui.desktop"
         return p.exists()
 
+    # ------------------------------------------------------------------
+    # Версии компонентов (ядро nfqws и ревизия стратегий)
+    # ------------------------------------------------------------------
+
+    def nfqws_installed_version(self):
+        """Версия установленного бинарника nfqws (из вывода --version)."""
+        binary = self.repo_root / "nfqws"
+        if not binary.exists():
+            return ""
+        try:
+            p = subprocess.run(
+                [str(binary), "--version"], capture_output=True, text=True,
+                timeout=10, encoding="utf-8", errors="replace",
+            )
+        except Exception:
+            return ""
+        m = re.search(r"github version\s+(\S+)", (p.stdout or "") + (p.stderr or ""))
+        return m.group(1) if m else ""
+
+    def flowseal_installed_rev(self):
+        """Ревизия установленных стратегий (записывается при обновлении)."""
+        marker = self.repo_root / ".flowseal-rev"
+        try:
+            if marker.exists():
+                rev = marker.read_text(encoding="utf-8").strip()
+                if rev:
+                    return rev
+        except Exception:
+            pass
+        return ""
+
     def downloads_present(self):
         return self.repo_dir.is_dir() and any(self.repo_dir.glob("*.bat"))
 

@@ -313,6 +313,10 @@ setup_repository() {
     # Обеспечиваем наличие шаблонов поддельных пакетов (bin/*.bin)
     ensure_bin_files
 
+    # Запоминаем, какая ревизия стратегий установлена (показывается во вкладке «Обновление»)
+    printf '%s\n' "$version" > "$BASE_DIR/.flowseal-rev" 2>/dev/null || true
+    chmod 644 "$BASE_DIR/.flowseal-rev" 2>/dev/null || true
+
     rm -rf "$tmp_dir"
     log "Стратегии обновлены в $REPO_DIR"
 }

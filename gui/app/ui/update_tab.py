@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..changelog import changelog_versions
-from ..updater import APP_VERSION, CheckWorker, git_pull_cmd, is_newer
+from ..updater import APP_VERSION, CheckWorker, ComponentsWorker, git_pull_cmd, is_newer
 from ..worker import CommandWorker
 from .widgets import add_row, log_line, make_button, make_card, make_title
 
@@ -21,6 +21,10 @@ DEFAULT_NOTES = (
     "Обновление содержит исправления и улучшения.\n"
     "Подробный список изменений — в CHANGELOG.md репозитория."
 )
+
+
+def _short(rev):
+    return rev if not rev else (rev[:10] + "…" if len(rev) > 10 else rev)
 
 
 class UpdateTab(QWidget):
@@ -31,6 +35,9 @@ class UpdateTab(QWidget):
         self.z = zapret
         self._worker = None
         self._checker = None
+        self._comp_worker = None
+        self._comp_zapret = ""
+        self._comp_flowseal = ""
         self.latest_tag = ""
         self.latest_notes = ""
         self._versions = []
@@ -62,6 +69,33 @@ class UpdateTab(QWidget):
         self.status_label.setWordWrap(True)
         il.addWidget(self.status_label)
         root.addWidget(info_card)
+
+        # --- Компоненты: ядро nfqws и стратегии Flowseal -----------------
+        comp_card = make_card()
+        cml = comp_card.layout()
+        comp_header = QLabel(">_ компоненты")
+        comp_header.setObjectName("logHeader")
+        cml.addWidget(comp_header)
+
+        self.nfqws_text = QLabel("—")
+        self.nfqws_text.setObjectName("valueLabel")
+        self.nfqws_text.setWordWrap(True)
+        self.nfqws_btn = make_button("Скачать nfqws")
+        self.nfqws_btn.setMinimumWidth(150)
+        cml.addWidget(add_row("Ядро nfqws", self._row(self.nfqws_text, self.nfqws_btn)))
+
+        self.strat_text = QLabel("—")
+        self.strat_text.setObjectName("valueLabel")
+        self.strat_text.setWordWrap(True)
+        self.strat_btn = make_button("Обновить стратегии")
+        self.strat_btn.setMinimumWidth(150)
+        cml.addWidget(add_row("Стратегии Flowseal", self._row(self.strat_text, self.strat_btn)))
+
+        self.comp_status = QLabel("Нажмите «Проверить обновления» — обновит и компоненты")
+        self.comp_status.setObjectName("subtitleLabel")
+        self.comp_status.setWordWrap(True)
+        cml.addWidget(self.comp_status)
+        root.addWidget(comp_card)
 
         notes_card = make_card()
         nl = notes_card.layout()
@@ -111,7 +145,80 @@ class UpdateTab(QWidget):
         self.check_btn.clicked.connect(lambda: self.check_now(show_dialog=False))
         self.update_btn.clicked.connect(self.do_update)
         self.version_combo.currentIndexChanged.connect(self._show_selected_version)
+        self.nfqws_btn.clicked.connect(lambda: self._run_component("nfqws"))
+        self.strat_btn.clicked.connect(lambda: self._run_component("strat"))
         self._load_changelog()
+        self._refresh_component_installed()
+
+    # ------------------------------------------------------------------
+    # Компоненты (ядро nfqws и стратегии Flowseal)
+    # ------------------------------------------------------------------
+
+    def _row(self, text_label, button):
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+        layout.addWidget(text_label, 1)
+        layout.addWidget(button)
+        return row
+
+    def _refresh_component_installed(self):
+        """Обновляет «установлено» по локальным данным (без сети)."""
+        nfqws = self.z.nfqws_installed_version()
+        strat = _short(self.z.flowseal_installed_rev())
+        self._comp_nfqws_installed = nfqws
+        self._comp_strat_installed = strat
+        self._set_component_texts()
+
+    def _set_component_texts(self):
+        nfqws = getattr(self, "_comp_nfqws_installed", "") or "—"
+        strat = getattr(self, "_comp_strat_installed", "") or "—"
+        if self._comp_zapret:
+            nfqws += f"  ·  доступно {self._comp_zapret}"
+        if self._comp_flowseal:
+            strat += f"  ·  доступно {_short(self._comp_flowseal)}"
+        self.nfqws_text.setText(nfqws)
+        self.strat_text.setText(strat)
+
+    def _on_components(self, res):
+        self._comp_zapret, self._comp_flowseal, error = res
+        if error:
+            self.comp_status.setText(f"! {error}")
+        else:
+            self.comp_status.setText("✓ версии компонентов получены")
+        self._set_component_texts()
+
+    def _run_component(self, which):
+        if self._worker and self._worker.isRunning():
+            self.append_log("! команда уже выполняется")
+            return
+        cmd = self.z.download_nfqws_cmd() if which == "nfqws" else self.z.update_strategies_cmd()
+        self.append_log(f"> {'download-nfqws' if which == 'nfqws' else 'update-strategies'}")
+        self.comp_status.setText("> выполняется…")
+        self._worker = CommandWorker(cmd, cwd=str(self.z.repo_root), elevated=True)
+        self._worker.output.connect(self.append_log)
+        self._worker.failed.connect(lambda msg: self._on_component_failed(msg, which))
+        self._worker.success.connect(lambda _: self._on_component_done(which))
+        self._worker.start()
+
+    def _on_component_done(self, which):
+        name = "ядро nfqws" if which == "nfqws" else "стратегии Flowseal"
+        self.append_log(f"> {name}: обновлено")
+        self.comp_status.setText(f"✓ {name} обновлено")
+        self._refresh_component_installed()
+        # Свежая доступная версия стратегий изменилась — переспрашиваем компоненты
+        self._start_components_check()
+
+    def _on_component_failed(self, msg, which):
+        self.append_log(f"! ошибка: {msg}")
+
+    def _start_components_check(self):
+        if self._comp_worker and self._comp_worker.isRunning():
+            return
+        self._comp_worker = ComponentsWorker(parent=self)
+        self._comp_worker.result.connect(self._on_components)
+        self._comp_worker.start()
 
     # ------------------------------------------------------------------
 
@@ -165,6 +272,8 @@ class UpdateTab(QWidget):
             return
         self.status_label.setText("> проверка обновлений…")
         self.check_btn.setEnabled(False)
+        self.comp_status.setText("> проверка версий компонентов…")
+        self._start_components_check()
         self._checker = CheckWorker(parent=self)
         self._checker.result.connect(lambda res: self._on_check(res, show_dialog))
         self._checker.start()
