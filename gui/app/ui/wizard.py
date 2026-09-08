@@ -322,21 +322,39 @@ class FirstRunWizard(QDialog):
         self.strategy_desc.setText(desc or "Описание не найдено")
 
     def _save_strategy(self):
+        if any(w.isRunning() for w in self._workers):
+            return
         name = self.strategy_combo.currentText()
         if not name:
             self._log(self.strategy_log, "! выберите способ")
             return
         self.strategy_log.setVisible(True)
+        self._log_view = self.strategy_log
         self.strategy_btn.setEnabled(False)
+        cfg = self.z.read_config()
+        cmd = self.z.config_set_cmd(
+            name,
+            cfg.get("interface", "any"),
+            cfg.get("gamefiltertcp") == "true",
+            cfg.get("gamefilterudp") == "true",
+            firewall_backend=cfg.get("firewall_backend", "auto"),
+            restart=False,
+        )
         self._log(self.strategy_log, f"> применяю способ: {name}")
-        ok, err = self.z.set_strategy(name)
+        self._run(cmd, elevated=True,
+                  on_done=self._strategy_done, on_fail=self._strategy_fail)
+
+    def _strategy_done(self):
         self.strategy_btn.setEnabled(True)
-        if ok:
-            self._log(self.strategy_log, "> сохранено")
-        else:
-            self._log(self.strategy_log, f"! не удалось сохранить: {err}")
-            self._log(self.strategy_log, "! можно выбрать способ во вкладке «Конфигурация»")
+        self._log(self.strategy_log, "> способ сохранён")
         self._refresh_summary()
+
+    def _strategy_fail(self, msg):
+        self.strategy_btn.setEnabled(True)
+        self._log(self.strategy_log, f"! не удалось сохранить: {msg}")
+        self._log(self.strategy_log,
+                  "! если не настроены права — сделайте это на шаге «Права» "
+                  "или во вкладке «Права»; способ также можно выбрать в «Конфигурации»")
 
     # ------------------------------------------------------------------
     # Состояния и служебное
