@@ -39,6 +39,13 @@ class ConfigTab(QWidget):
         self.strategy_combo.addItems(self.z.strategies())
         cl.addWidget(add_row("Стратегия", self.strategy_combo))
 
+        self.strategy_desc = QLabel("—")
+        self.strategy_desc.setObjectName("statusMetaLabel")
+        self.strategy_desc.setWordWrap(True)
+        cl.addWidget(self.strategy_desc)
+
+        self.strategy_combo.currentIndexChanged.connect(self._update_strategy_desc)
+
         self.interface_combo = QComboBox()
         self.interface_combo.addItems(self.z.interfaces())
         cl.addWidget(add_row("Интерфейс", self.interface_combo))
@@ -91,6 +98,12 @@ class ConfigTab(QWidget):
         idx = self.strategy_combo.findText(current)
         if idx >= 0:
             self.strategy_combo.setCurrentIndex(idx)
+        self._update_strategy_desc()
+
+    def _update_strategy_desc(self):
+        name = self.strategy_combo.currentText()
+        desc = self.z.strategy_description(name) if name else ""
+        self.strategy_desc.setText(desc or "Описание не найдено")
 
     def load_config(self):
         cfg = self.z.read_config()
@@ -113,6 +126,8 @@ class ConfigTab(QWidget):
 
         self.gt_check.setChecked(cfg.get("gamefiltertcp") == "true")
         self.gu_check.setChecked(cfg.get("gamefilterudp") == "true")
+
+        self._update_strategy_desc()
 
     def save_config(self):
         if self._worker and self._worker.isRunning():

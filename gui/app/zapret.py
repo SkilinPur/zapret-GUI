@@ -264,3 +264,102 @@ class Zapret:
     def downloads_present(self):
         return self.repo_dir.is_dir() and any(self.repo_dir.glob("*.bat"))
 
+    # ------------------------------------------------------------------
+    # Авто-описание стратегии (для показа в «Конфигурации»)
+    # ------------------------------------------------------------------
+
+    def _strategy_path(self, name):
+        for base in (self.custom_strategies, self.repo_dir):
+            p = base / name
+            if p.exists():
+                return p
+        return None
+
+    def strategy_description(self, name):
+        """Короткое человекочитаемое описание .bat по его параметрам."""
+        path = self._strategy_path(name)
+        if path is None:
+            return ""
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace").lower()
+        except Exception:
+            return ""
+        text = text.replace("\r", "")
+
+        # --- Область действия (по спискам/доменам/имени файла) ----------
+        scope = " " + path.name.lower()
+        for m in re.finditer(r'--hostlist=?["\']?%LISTS%([\w.-]+\.txt)', text):
+            scope += " " + m.group(1)
+        for m in re.finditer(r"--hostlist-domains=([\w.,-]+)", text):
+            scope += " " + m.group(1)
+
+        targets = []
+        for key, label in (("google", "YouTube/Google"), ("googlevideo", "YouTube/Google"),
+                           ("discord", "Discord"), ("rutube", "RuTube"),
+                           ("4pda", "4PDA"), ("steam", "Steam"), ("vk", "VK"),
+                           ("minecraft", "Minecraft"), ("hypixel", "Hypixel")):
+            if key in scope and label not in targets:
+                targets.append(label)
+        if not targets and "general" in scope:
+            targets.append("YouTube/Discord (основной список)")
+        if "ipset-all" in text:
+            targets.append("весь трафик")
+        if not targets:
+            targets.append("по спискам/хостам")
+        area = " · ".join(targets)
+
+        # --- Порты и протоколы -----------------------------------------
+        def ports(marker):
+            vals = []
+            for m in re.finditer(rf"{marker}=([0-9,\-%]+)", text):
+                for chunk in m.group(1).split(","):
+                    chunk = chunk.strip().strip("%")
+                    if not re.fullmatch(r"\d+(-\d+)?", chunk) or chunk in vals:
+                        continue
+                    vals.append(chunk)
+            return vals
+
+        tcp = ports(r"--filter-tcp")
+        udp = ports(r"--filter-udp")
+
+        # --- Методы обхода ---------------------------------------------
+        modes = set()
+        for m in re.finditer(r"--dpi-desync=([a-z0-9,_]+)", text):
+            modes.update(x for x in m.group(1).split(",") if x)
+        mode_map = {
+            "fake": "fake (подмена ответа)",
+            "fakedsplit": "fakedsplit",
+            "multisplit": "multisplit (дробление)",
+            "syndata": "syndata",
+            "hostfakesplit": "hostfakesplit",
+        }
+        mode_labels = [mode_map.get(x, x) for x in sorted(modes)]
+        if "autottl" in text:
+            mode_labels.append("autottl")
+        parts = []
+
+        proto = []
+        if tcp:
+            proto.append("TCP " + ",".join(tcp))
+        if udp:
+            proto.append("UDP " + ",".join(udp))
+        if proto:
+            parts.append("; ".join(proto))
+        if "fake-quic" in text or "fake-unknown-udp" in text:
+            parts.append("подмена QUIC (UDP 443)")
+        if "fake-discord" in text or "fake-stun" in text:
+            parts.append("подмена Discord/STUN")
+        if "fake-tls" in text:
+            parts.append("подмена TLS")
+        if mode_labels:
+            parts.append("метод: " + ", ".join(mode_labels))
+
+        lines = [f"Область: {area}."]
+        if parts:
+            lines.append(" ".join(parts) + ".")
+        # Повторы
+        reps = set(re.findall(r"--dpi-desync-repeats=(\d+)", text))
+        if reps:
+            lines.append(f"Повторов пакета: {', '.join(sorted(reps))}.")
+        return "\n".join(lines)
+

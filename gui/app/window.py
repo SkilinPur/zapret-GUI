@@ -19,14 +19,12 @@ from .ui.help_tab import HelpTab
 from .ui.permissions_tab import PermissionsTab
 from .ui.service_tab import ServiceTab
 from .ui.status_tab import StatusTab
-from .ui.strategies_tab import StrategiesTab
 from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
     ("📖 Как пользоваться", HelpTab),
     ("🟢 Статус", StatusTab),
     ("⚙️ Конфигурация", ConfigTab),
-    ("📁 Стратегии", StrategiesTab),
     ("⬆️ Обновление", UpdateTab),
     ("🛠️ Сервис", ServiceTab),
     ("🎯 Автоподбор", AutotuneTab),
