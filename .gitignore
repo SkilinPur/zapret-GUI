@@ -1,6 +1,9 @@
 zapret-latest/bin
+zapret-latest/lists/*-user.txt
+zapret-latest/service.bat
 /bin
 user-lists
+AGENTS.md
 conf.env
 nfqws
 auto_tune_youtube_results.txt

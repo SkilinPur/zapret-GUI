@@ -156,55 +156,76 @@ ensure_user_lists() {
 }
 
 # Обеспечивает наличие шаблонов поддельных пакетов bin/*.bin в каталоге стратегий.
-# Стратегии ссылаются на %BIN%quic_initial_*.bin и %BIN%tls_clienthello_*.bin, но
-# этих файлов нет ни в git-клоне стратегий (Flowseal), ни в архиве релиза zapret.
-# Оригиналы лежат в bol-van/zapret в files/fake. Копии кешируются в $BASE_DIR/bin,
-# чтобы при повторных запусках не качать заново.
+# Стратегии ссылаются на %BIN%...bin; часть шаблонов поставляет сам Flowseal в
+# bin/ (ACTIVE_DISCORD_UDP.bin, stun2.bin и т.п.), часть лежит в bol-van/zapret
+# в files/fake. Здесь для каждого недостающего файла, на который ссылаются
+# стратегии, пробуем оба источника. Копии кешируются в $BASE_DIR/bin.
 ensure_bin_files() {
     local bin_dir="$REPO_DIR/bin"
     local cache_dir="$BASE_DIR/bin"
+    local strat_ref="${MAIN_REPO_REV:-main}"
     local zapret_ref="${ZAPRET_BIN_REF:-$ZAPRET_RECOMMENDED_VERSION}"
-    local base_url="https://raw.githubusercontent.com/bol-van/zapret/${zapret_ref}/files/fake"
 
     mkdir -p "$bin_dir" "$cache_dir"
 
-    # Имена, которых нет в files/fake zapret: подставляем шаблон того же типа.
-    local -A alias_map=(
-        [quic_initial_dbankcloud_ru.bin]=quic_initial_www_google_com.bin
-        [tls_clienthello_max_ru.bin]=tls_clienthello_www_google_com.bin
-        [tls_clienthello_4pda_to.bin]=tls_clienthello_www_google_com.bin
+    # Собираем имена bin/*.bin, на которые ссылаются имеющиеся стратегии
+    local -A needed=()
+    local f name
+    for f in "$REPO_DIR"/*.bat "$CUSTOM_STRATEGIES_DIR"/*.bat; do
+        [[ -f "$f" ]] || continue
+        while IFS= read -r name; do
+            [[ -n "$name" ]] && needed[$name]=1
+        done < <(grep -oP '%BIN%\K[A-Za-z0-9_.-]+\.bin' "$f" 2>/dev/null)
+    done
+    # Уже лежащие рядом (например, скопированные из bin/ Flowseal) не трогаем
+    local existing
+    for f in "$bin_dir"/*.bin; do
+        [[ -f "$f" ]] || continue
+        existing=$(basename "$f")
+        unset "needed[$existing]"
+    done
+
+    [[ ${#needed[@]} -eq 0 ]] && return 0
+
+    local url tmp file
+    local -a sources=(
+        "https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/${strat_ref}/bin"
+        "https://raw.githubusercontent.com/bol-van/zapret/${zapret_ref}/files/fake"
     )
 
-    local name file source
-    for name in quic_initial_www_google_com.bin quic_initial_dbankcloud_ru.bin \
-                tls_clienthello_www_google_com.bin tls_clienthello_max_ru.bin \
-                tls_clienthello_4pda_to.bin stun.bin; do
+    for name in "${!needed[@]}"; do
         file="$bin_dir/$name"
-        [[ -s "$file" ]] && continue
-
-        # 1) Кеш: сначала прямой файл, затем алиас к нему
-        source="${alias_map[$name]:-$name}"
-        if [[ -s "$cache_dir/$source" ]]; then
-            cp -f "$cache_dir/$source" "$file" && continue
+        # Кеш
+        if [[ -s "$cache_dir/$name" ]]; then
+            cp -f "$cache_dir/$name" "$file" && continue
         fi
 
-        # 2) Алиас: берём уже готовый шаблон того же типа (quic_/tls_clienthello_)
-        if [[ -n "${alias_map[$name]}" ]]; then
+        tmp="$cache_dir/.${name}.part"
+        rm -f "$tmp"
+        for url in "${sources[@]}"; do
+            if curl -fsSL --max-time 30 "$url/$name" -o "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+                mv -f "$tmp" "$cache_dir/$name"
+                cp -f "$cache_dir/$name" "$file"
+                break
+            fi
+        done
+        rm -f "$tmp"
+
+        # Не нашли в источниках (старые имена вроде quic_initial_dbankcloud_ru.bin) —
+        # берём шаблон того же типа, если он уже есть
+        if [[ ! -s "$file" ]]; then
             local like
-            if [[ "$name" == quic_* ]]; then
-                like="quic_initial_www_google_com.bin"
-            else
-                like="tls_clienthello_www_google_com.bin"
+            case "$name" in
+                quic_*) like="quic_initial_www_google_com.bin" ;;
+                stun*)  like="stun.bin" ;;
+                tls_*)  like="tls_clienthello_www_google_com.bin" ;;
+                *)      continue ;;
+            esac
+            if [[ -s "$bin_dir/$like" ]]; then
+                cp -f "$bin_dir/$like" "$file"
+            elif [[ -s "$cache_dir/$like" ]]; then
+                cp -f "$cache_dir/$like" "$file"
             fi
-            if [[ -s "$bin_dir/$like" || -s "$cache_dir/$like" ]]; then
-                cp -f "${bin_dir}/$like" "$file" 2>/dev/null || cp -f "$cache_dir/$like" "$file"
-                continue
-            fi
-        fi
-
-        # 3) Скачиваем оригинал из bol-van/zapret
-        if curl -fsSL --max-time 30 "$base_url/$source" -o "$cache_dir/$source" 2>/dev/null; then
-            cp -f "$cache_dir/$source" "$file"
         fi
     done
 }
@@ -277,6 +298,14 @@ setup_repository() {
         mkdir -p "$REPO_DIR/lists"
         # Пользовательские списки (*-user.txt) не перезаписываем
         cp "$tmp_dir/strategies/lists"/*.txt "$REPO_DIR/lists/" 2>/dev/null || true
+    fi
+
+    # Шаблоны поддельных пакетов, которые поставляет Flowseal в bin/ (новые
+    # стратегии ссылаются на них: ACTIVE_DISCORD_UDP.bin, stun2.bin и т.п.).
+    # Windows-файлы (winws.exe, *.dll, *.sys) не копируем.
+    if [[ -d "$tmp_dir/strategies/bin" ]]; then
+        mkdir -p "$REPO_DIR/bin"
+        cp "$tmp_dir/strategies/bin"/*.bin "$REPO_DIR/bin/" 2>/dev/null || true
     fi
 
     # Обеспечиваем наличие пользовательских списков
