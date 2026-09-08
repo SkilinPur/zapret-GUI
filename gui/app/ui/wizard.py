@@ -28,6 +28,8 @@ class FirstRunWizard(QDialog):
         self.z = zapret
         self.request_start = request_start
         self._workers = []
+        self._advance_pending = False
+        self._strategy_applied = False
         self.setWindowTitle("Настройка Zapret Discord YouTube")
         self.setModal(True)
         self.setMinimumSize(720, 540)
@@ -159,6 +161,7 @@ class FirstRunWizard(QDialog):
         self.strategy_combo = QComboBox()
         self.strategy_combo.setMinimumHeight(34)
         layout.addWidget(self.strategy_combo)
+        self.strategy_combo.currentIndexChanged.connect(self._on_strategy_changed)
 
         self.strategy_desc = QLabel("—")
         self.strategy_desc.setObjectName("statusMetaLabel")
@@ -217,6 +220,20 @@ class FirstRunWizard(QDialog):
             self._update_nav()
 
     def _go_next(self):
+        # На странице способа обхода применяем выбранное, если оно отличается
+        if self._index == 3 and not self._strategy_applied:
+            self.next_btn.setEnabled(False)
+            self._save_strategy(advance=True)
+            return
+        self._do_advance()
+
+    def _maybe_advance(self):
+        if self._advance_pending:
+            self._advance_pending = False
+            self.next_btn.setEnabled(True)
+            self._do_advance()
+
+    def _do_advance(self):
         if self._index >= len(self._pages) - 1:
             self._finish()
             return
@@ -307,22 +324,36 @@ class FirstRunWizard(QDialog):
     # ------------------------------------------------------------------
 
     def _refresh_strategy_list(self):
+        current = self.z.read_config().get("strategy", "")
         self.strategy_combo.blockSignals(True)
         self.strategy_combo.clear()
         self.strategy_combo.addItems(self.z.strategies())
-        self.strategy_combo.blockSignals(False)
-        recommended = "general.bat"
-        idx = self.strategy_combo.findText(recommended)
+        idx = self.strategy_combo.findText(current) if current else -1
+        if idx < 0:
+            idx = self.strategy_combo.findText("general.bat")
         self.strategy_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self.strategy_combo.blockSignals(False)
+        self._on_strategy_changed()
+
+    def _on_strategy_changed(self):
         self._update_strategy_desc()
+        cfg = self.z.read_config().get("strategy", "")
+        name = self.strategy_combo.currentText()
+        self._strategy_applied = bool(name and name == cfg)
+        if self._strategy_applied:
+            self.strategy_btn.setText("💾 Применить способ")
+        else:
+            self.strategy_btn.setText("💾 Применить способ (изменён)")
 
     def _update_strategy_desc(self):
         name = self.strategy_combo.currentText()
         desc = self.z.strategy_description(name) if name else ""
         self.strategy_desc.setText(desc or "Описание не найдено")
 
-    def _save_strategy(self):
+    def _save_strategy(self, advance=False):
         if any(w.isRunning() for w in self._workers):
+            if advance:
+                self._advance_pending = True
             return
         name = self.strategy_combo.currentText()
         if not name:
@@ -331,6 +362,7 @@ class FirstRunWizard(QDialog):
         self.strategy_log.setVisible(True)
         self._log_view = self.strategy_log
         self.strategy_btn.setEnabled(False)
+        self._advance_pending = advance
         cfg = self.z.read_config()
         cmd = self.z.config_set_cmd(
             name,
@@ -347,14 +379,19 @@ class FirstRunWizard(QDialog):
     def _strategy_done(self):
         self.strategy_btn.setEnabled(True)
         self._log(self.strategy_log, "> способ сохранён")
+        self._on_strategy_changed()
         self._refresh_summary()
+        self._maybe_advance()
 
     def _strategy_fail(self, msg):
         self.strategy_btn.setEnabled(True)
         self._log(self.strategy_log, f"! не удалось сохранить: {msg}")
         self._log(self.strategy_log,
-                  "! если не настроены права — сделайте это на шаге «Права» "
-                  "или во вкладке «Права»; способ также можно выбрать в «Конфигурации»")
+                  "! можно повторить «Применить» или продолжить без сохранения "
+                  "(способ можно выбрать позже во вкладке «Конфигурация»)")
+        self._strategy_applied = True
+        self.next_btn.setEnabled(True)
+        self._advance_pending = False
 
     # ------------------------------------------------------------------
     # Состояния и служебное
