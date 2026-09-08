@@ -276,9 +276,13 @@ class MainWindow(QMainWindow):
     def _change_tab(self, row):
         if 0 <= row < len(self._tabs):
             self.stack.setCurrentIndex(row)
-            refresh = getattr(self._tabs[row], "refresh_strategies", None)
+            tab = self._tabs[row]
+            refresh = getattr(tab, "refresh_strategies", None)
             if refresh is not None:
                 refresh()
+            # При открытии «Обновления» сразу проверяем версии
+            if isinstance(tab, UpdateTab):
+                tab.check_now(show_dialog=False)
 
     def show_from_tray(self):
         self.showNormal()
