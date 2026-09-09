@@ -1,16 +1,17 @@
 <div align="center">
 
-# 🎧 InIProject — Zapret GUI for Linux
-
-**Русский** · [English](README_EN.md)
+# ⚡ zapret-GUI — Linux
 
 ### Графический интерфейс для обхода замедления YouTube и Discord
 
-GUI-обёртка (PySide6) вокруг [zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux). Не содержит собственной логики обхода — весь функционал выполняют существующие скрипты адаптера.
+Управляет существующими скриптами [zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux) — вся логика обхода выполняется проверенными bash-скриптами адаптера, GUI их просто удобно запускает.
 
-[![GitHub stars](https://img.shields.io/github/stars/SkilinPur/zapret-GUI?style=social)](https://github.com/SkilinPur/zapret-GUI/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/SkilinPur/zapret-GUI?style=social)](https://github.com/SkilinPur/zapret-GUI/network/members)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Релиз](https://img.shields.io/github/v/release/SkilinPur/zapret-GUI?color=8b5cf6&label=релиз&logo=github)](https://github.com/SkilinPur/zapret-GUI/releases)
+[![Платформа](https://img.shields.io/badge/платформа-Linux-2ea44f?logo=linux&logoColor=white)]()
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)]()
+[![UI](https://img.shields.io/badge/UI-PySide6-41cd52)]()
+[![Ядро](https://img.shields.io/badge/ядро-nfqws%20(zapret)-informational)]()
+[![Стратегии](https://img.shields.io/badge/стратегии-Flowseal-red)]()
 
 </div>
 
@@ -18,42 +19,48 @@ GUI-обёртка (PySide6) вокруг [zapret-discord-youtube-linux](https:/
 
 ## О проекте
 
-`zapret-GUI` — это графический интерфейс поверх адаптера
-[Sergeydigl3/zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux).
-Скрипт управляет тем же CLI (`service.sh`), что и оригинальный порт: запуск/остановка,
-конфигурация, системный сервис, загрузка зависимостей и автоподбор стратегий — без работы в терминале.
+**zapret-GUI** — это самодостаточная графическая обёртка над Linux-портом zapret.
+Она не содержит собственной логики обхода: запуск/остановка, выбор способа,
+фаервол и обновления выполняют существующие скрипты адаптера — те же команды,
+что и через CLI.
 
-**Протестировано на:** Arch Linux
+Протестировано на **Arch Linux** (работает на любом дистрибутиве с графической
+сессией).
 
-**Это форк порта на Linux.** Исходные стратегии принадлежат проекту
-[Flowseal](https://github.com/Flowseal/zapret-discord-youtube), ядро — проекту
-[bol-van/zapret](https://github.com/bol-van/zapret).
-
----
+> Windows-версия того же GUI: [SkilinPur/zapret-GUI-Windows](https://github.com/SkilinPur/zapret-GUI-Windows)
 
 ## Возможности
 
-- **Статус** — индикатор работы zapret, запуск/остановка (фоновый демон или systemd-сервис), живой лог
-- **Конфигурация** — стратегия, интерфейс, бэкенд фаервола, GameFilterTCP/UDP (сохраняется в `conf.env`)
-- **Конфигурация** — стратегия (с авто-описанием под выбором), интерфейс, бэкенд фаервола, GameFilterTCP/UDP (сохраняется в `conf.env`)
-- **Обновление** — три модуля: программа (GUI), ядро nfqws, стратегии Flowseal: версии, статус и обновление каждого; история версий из `CHANGELOG.md`
-- **Сервис** — установка/удаление службы автозагрузки, запуск/остановка/перезапуск, логи
-- **Автоподбор** — автоматический подбор рабочей стратегии (`auto_tune_youtube.sh`, проверка доменов)
-- **Права** — настройка работы без пароля (NOPASSWD sudo): пароль запрашивает сам GUI через диалог
-- **Трей** — закрытие окна сворачивает программу в трей (zapret продолжает работать), ЛКМ по иконке — меню «Показать окно» / «Завершить программу»
-- **Авторство** — авторы проекта с аватарками и ссылками
+- **Самодостаточность** — в одном окне версии и обновление трёх компонентов:
+  программа (GUI), ядро nfqws, стратегии Flowseal. Проверка обновлений
+  автоматически при открытии вкладки.
+- **Статус** — запуск/остановка, живой лог, состояние.
+- **Способ обхода с описанием** — каждый `.bat` автоматически расшифровывается
+  (что обходит, какие порты и метод), чтобы было понятно без словаря.
+- **Мастер первого запуска** — пошагово: права → ядро → способ обхода → запуск.
+- **Тёмная тема, системный трей** — окно сворачивается в трей, из трея —
+  показать/выйти и быстрый запуск/остановка.
+- **Понятные термины** — GameFilter, бэкенд фаервола и пр. с пояснениями.
+- **CLI адаптера** полностью доступен: `./service.sh --help`.
 
----
+## Как это устроено
 
-## Требования
+```
+┌──────────────┐   команды    ┌─────────────────────┐
+│  zapret-GUI  │ ───────────▶ │  service.sh (адаптер)│
+│  (PySide6)   │              └──────────┬──────────┘
+└──────────────┘                         │
+                                         ▼
+              ┌──────────────┬─────────────────────┐
+              │ ядро: nfqws  │ фаервол: nftables/   │
+              │ (bol-van)    │ iptables             │
+              └──────────────┴─────────────────────┘
+  стратегии: Flowseal/zapret-discord-youtube (.bat + списки)
+```
 
-- Linux (работает на любом дистрибутиве с графической сессией)
-- Python 3.9+ и `python3-venv`
-- Системные библиотеки для PySide6 (libEGL, libGL, libxkbcommon, xcb)
-- nftables или iptables
-- При первом запуске GUI автоматически устанавливает PySide6 в `gui/.venv`
-
----
+- **Ядро** — `nfqws` из релизов [bol-van/zapret](https://github.com/bol-van/zapret).
+- **Стратегии** — `.bat`-наборы параметров из [Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube).
+- **Перехват** — nftables/iptables (netfilter queue).
 
 ## Быстрый старт
 
@@ -61,58 +68,62 @@ GUI-обёртка (PySide6) вокруг [zapret-discord-youtube-linux](https:/
 git clone https://github.com/SkilinPur/zapret-GUI.git
 cd zapret-GUI
 
-./service.sh download-nfqws         # скачать nfqws, если ещё не установлен
-./service.sh setup-permissions      # работа без пароля (NOPASSWD, спросит пароль sudo)
-./service.sh gui                    # запуск GUI
-```
-
-Стратегии уже в комплекте (папка `zapret-latest`), ничего скачивать для них не нужно.
-Списки `lists/*-user.txt` и шаблоны поддельных пакетов (`bin/*.bin`) создаются и
-подтягиваются автоматически при запуске. При необходимости стратегии можно обновить:
-`./service.sh update-strategies`.
-
-Или напрямую:
-
-```bash
-./gui/gui.sh
+./service.sh download-nfqws         # ядро, если ещё не установлено
+./service.sh setup-permissions      # работа без пароля (спросит пароль sudo)
+./gui/gui.sh                        # запуск GUI
 ```
 
 Первый запуск создаст виртуальное окружение и установит PySide6.
+Стратегии уже в комплекте; списки и шаблоны `bin/*.bin` подтягиваются сами.
+Приложение можно запускать и из меню: вкладка «Сервис» → «Установить ярлык».
 
----
+## Вкладки
 
-## Использование
-
-| Вкладка | Назначение |
+| Вкладка | Что делает |
 |---|---|
-| **Как пользоваться** | краткое руководство |
-| **Статус** | запуск/остановка, режим (демон / systemd), лог |
-| **Конфигурация** | стратегия (с описанием), интерфейс, бэкенд, GameFilter |
-| **Обновление** | версии и обновление программы, ядра nfqws и стратегий, история изменений |
-| **Сервис** | автозагрузка, статус, логи |
-| **Автоподбор** | подбор рабочей стратегии (экспериментально) |
-| **Права** | NOPASSWD для запуска без пароля (пароль вводится в диалоге) |
+| **Статус** | запуск/остановка, режим (фон / systemd-сервис), живой лог |
+| **Конфигурация** | способ обхода (с описанием), интерфейс, бэкенд фаервола, GameFilter |
+| **Обновление** | модули «Программа / Ядро nfqws / Стратегии»: версии, статус, обновление; история изменений |
+| **Как пользоваться** | короткое руководство + «🚀 Мастер настройки» |
+| **Сервис** | автозапуск (системная служба), ярлык в меню приложений |
+| **Автоподбор** | подбор рабочей стратегии |
+| **Права** | запуск без запроса пароля (NOPASSWD sudo) |
 | **Авторство** | авторы проекта |
 
-Также доступен полноценный CLI оригинального порта: `./service.sh --help`.
+## Обновление
 
----
+Всё обновляется из вкладки **«Обновление»**:
+
+- **Программа** — обновление GUI через git (предложение перезапуска);
+- **Ядро nfqws** — скачивание последнего стабильного релиза bol-van/zapret;
+- **Стратегии Flowseal** — актуальные `.bat`, списки и шаблоны.
+
+Ядро и стратегии обновляются **одной проверенной связкой**, чтобы не разъезжаться
+с версиями параметров.
+
+## Требования
+
+- Linux с графической сессией
+- Python 3.9+ и `python3-venv`
+- Системные библиотеки PySide6 (libEGL, libGL, libxkbcommon, xcb)
+- nftables или iptables
 
 ## Авторство
 
 | Роль | Автор | Репозиторий |
 |---|---|---|
-| GUI (графический интерфейс) | [SkilinPur](https://github.com/SkilinPur) | [zapret-GUI](https://github.com/SkilinPur/zapret-GUI) |
+| GUI (этот проект) | [SkilinPur](https://github.com/SkilinPur) | [zapret-GUI](https://github.com/SkilinPur/zapret-GUI) |
 | Порт на Linux (адаптер) | [Sergeydigl3](https://github.com/Sergeydigl3) | [zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux) |
-| Исходник (стратегии) | [Flowseal](https://github.com/Flowseal) | [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) |
-| Ядро zapret (nfqws) | [bol-van](https://github.com/bol-van) | [zapret](https://github.com/bol-van/zapret) |
+| Стратегии | [Flowseal](https://github.com/Flowseal) | [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) |
+| Ядро zapret | [bol-van](https://github.com/bol-van) | [zapret](https://github.com/bol-van/zapret) |
 
-Проект собран вокруг порта на Linux от **Sergeydigl3**.
-Исходные стратегии — **Flowseal**, ядро — **bol-van**.
+## Лицензия и предупреждение
 
----
+Лицензионные условия наследуются от исходных проектов
+([zapret](https://github.com/bol-van/zapret),
+[zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube),
+[zapret-discord-youtube-linux](https://github.com/Sergeydigl3/zapret-discord-youtube-linux)).
 
-## Лицензия
-
-Лицензионные условия наследуются от оригинальных проектов
-([zapret](https://github.com/bol-van/zapret), [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube)).
+Программа предназначена для обхода технических ограничений и замедлений
+в странах, где это разрешено законом. Используйте её ответственно — соблюдайте
+законодательство вашей юрисдикции.
