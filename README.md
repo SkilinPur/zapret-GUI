@@ -43,6 +43,19 @@
 - **Понятные термины** — GameFilter, бэкенд фаервола и пр. с пояснениями.
 - **CLI адаптера** полностью доступен: `./service.sh --help`.
 
+## Скриншоты
+
+<div align="center">
+  <img src="docs/screenshots/status.png" width="430" alt="Статус"/>
+  <img src="docs/screenshots/config.png" width="430" alt="Конфигурация"/>
+  <br/>
+  <img src="docs/screenshots/update.png" width="430" alt="Обновление"/>
+  <img src="docs/screenshots/service.png" width="430" alt="Сервис"/>
+  <br/>
+  <img src="docs/screenshots/help.png" width="430" alt="Как пользоваться"/>
+  <img src="docs/screenshots/autotune.png" width="430" alt="Автоподбор"/>
+</div>
+
 ## Как это устроено
 
 ```
