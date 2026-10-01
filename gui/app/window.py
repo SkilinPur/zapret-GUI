@@ -3,6 +3,8 @@
 # =============================================================================
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
+import os
+
 from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QListWidget, QMainWindow, QPushButton, QStackedWidget,
@@ -102,6 +104,10 @@ class MainWindow(QMainWindow):
 
     def _auto_check_updates(self):
         if self._really_quit:
+            return
+        # Для smoke/скриншотов (CI) автопроверку отключаем — иначе CheckWorker
+        # живёт дольше скрипта и роняет процесс на выходе.
+        if os.environ.get("ZAPRET_GUI_NOAUTOUPDATE"):
             return
         # Тихая проверка при старте — без всплывающего диалога.
         for tab in self._tabs:

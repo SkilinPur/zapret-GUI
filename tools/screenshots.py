@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "0")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("ZAPRET_GUI_NOAUTOUPDATE", "1")
 
 from PySide6.QtCore import QSettings  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
