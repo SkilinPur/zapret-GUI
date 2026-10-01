@@ -379,7 +379,7 @@ class MainWindow(QMainWindow):
     def _apply_mode(self, *_):
         simple = self.mode_btn.isChecked()
         QSettings().setValue("ui/simple_mode", simple)
-        self.mode_btn.setText("Простой" if simple else "Продвинутый")
+        self.mode_btn.setText("🧭 Простой" if simple else "🧭 Продвинутый")
         visible = [(n, c) for n, c in NAV_ITEMS
                    if (not simple) or c not in ADVANCED_TABS]
         classes = [c for _, c in NAV_ITEMS]
