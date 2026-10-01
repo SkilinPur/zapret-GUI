@@ -37,7 +37,7 @@ class ConfigTab(QWidget):
 
         self.strategy_combo = QComboBox()
         self.strategy_combo.addItems(self.z.strategies())
-        cl.addWidget(add_row("Стратегия", self.strategy_combo))
+        cl.addWidget(add_row("Способ обхода", self.strategy_combo))
 
         self.strategy_desc = QLabel("—")
         self.strategy_desc.setObjectName("statusMetaLabel")
@@ -46,13 +46,22 @@ class ConfigTab(QWidget):
 
         self.strategy_combo.currentIndexChanged.connect(self._update_strategy_desc)
 
+        # --- Дополнительно (свёрнуто по умолчанию) ---
+        self.adv_btn = make_button("⚙️ Дополнительно: интерфейс, фаервол, GameFilter")
+        self.adv_btn.setCheckable(True)
+        cl.addWidget(self.adv_btn)
+
+        self.adv_box = QWidget()
+        al = QVBoxLayout(self.adv_box)
+        al.setContentsMargins(0, 0, 0, 0)
+
         self.interface_combo = QComboBox()
         self.interface_combo.addItems(self.z.interfaces())
-        cl.addWidget(add_row("Интерфейс", self.interface_combo))
+        al.addWidget(add_row("Сетевой интерфейс", self.interface_combo))
 
         self.backend_combo = QComboBox()
         self.backend_combo.addItems(["auto"] + self.z.backends())
-        cl.addWidget(add_row("Бэкенд фаервола", self.backend_combo))
+        al.addWidget(add_row("Брандмауэр (бэкенд)", self.backend_combo))
 
         gf_row = QWidget()
         gfl = QVBoxLayout(gf_row)
@@ -80,7 +89,11 @@ class ConfigTab(QWidget):
         gf_hint.setObjectName("statusMetaLabel")
         gf_hint.setWordWrap(True)
         gfl.addWidget(gf_hint)
-        cl.addWidget(add_row("GameFilter", gf_row))
+        al.addWidget(add_row("GameFilter", gf_row))
+
+        cl.addWidget(self.adv_box)
+        self.adv_box.setVisible(False)
+        self.adv_btn.toggled.connect(self.adv_box.setVisible)
 
         btn_row = QWidget()
         btl = QVBoxLayout(btn_row)

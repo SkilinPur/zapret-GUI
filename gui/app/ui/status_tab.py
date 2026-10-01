@@ -93,6 +93,17 @@ class StatusTab(QWidget):
         bl.addStretch()
         sc.addWidget(btn_row)
 
+        srv_row = QWidget()
+        sl = QHBoxLayout(srv_row)
+        sl.setContentsMargins(0, 0, 0, 0)
+        sl.setSpacing(10)
+        self.check_btn = make_button("🔎 Проверить YouTube/Discord")
+        self.discord_btn = make_button("🧹 Очистить кэш Discord")
+        sl.addWidget(self.check_btn)
+        sl.addWidget(self.discord_btn)
+        sl.addStretch()
+        sc.addWidget(srv_row)
+
         root.addWidget(status_card)
 
         # --- Лог ---
@@ -113,6 +124,8 @@ class StatusTab(QWidget):
         # --- Сигналы ---
         self.start_btn.clicked.connect(self.start_zapret)
         self.stop_btn.clicked.connect(self.stop_zapret)
+        self.check_btn.clicked.connect(lambda: self._run_worker(self.z.check_sites_cmd()))
+        self.discord_btn.clicked.connect(lambda: self._run_worker(self.z.clear_discord_cache_cmd()))
 
     # ------------------------------------------------------------------
     # Действия

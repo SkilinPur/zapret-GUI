@@ -237,6 +237,31 @@ QPushButton[modeBtn="true"]:checked {
     color: #e53935;
 }
 
+QPushButton#helpBtn {
+    border-radius: 15px;
+    border: 1px solid #33333a;
+    background-color: #1a1a1e;
+    color: #9e9e9e;
+    font-weight: bold;
+}
+QPushButton#helpBtn:hover {
+    border-color: #e53935;
+    color: #e53935;
+}
+
+QPushButton#creditsBtn {
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #26262b;
+    background-color: transparent;
+    color: #9e9e9e;
+    font-size: 12px;
+}
+QPushButton#creditsBtn:hover {
+    border-color: #e53935;
+    color: #e53935;
+}
+
 /* ---------- Поля и выбор ---------- */
 QLineEdit, QComboBox, QPlainTextEdit {
     background-color: #0a0a0c;

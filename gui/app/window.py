@@ -5,7 +5,7 @@
 
 from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QListWidget, QMainWindow, QStackedWidget,
+    QHBoxLayout, QLabel, QListWidget, QMainWindow, QPushButton, QStackedWidget,
     QSystemTrayIcon, QVBoxLayout, QWidget,
 )
 
@@ -22,14 +22,13 @@ from .ui.status_tab import StatusTab
 from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
-    ("📖 Как пользоваться", HelpTab),
     ("🟢 Статус", StatusTab),
     ("⚙️ Конфигурация", ConfigTab),
     ("⬆️ Обновление", UpdateTab),
     ("🛠️ Сервис", ServiceTab),
     ("🎯 Автоподбор", AutotuneTab),
     ("🔑 Права", PermissionsTab),
-    ("👥 Авторство", CreditsTab),
+    ("📖 Как пользоваться", HelpTab),
 ]
 
 SIDEBAR_WIDTH = 190
@@ -220,10 +219,18 @@ class MainWindow(QMainWindow):
         self.header_status = QLabel("●")
         self.header_status.setObjectName("headerStatus")
 
+        self.help_btn = QPushButton("?")
+        self.help_btn.setObjectName("helpBtn")
+        self.help_btn.setFixedSize(30, 30)
+        self.help_btn.setCursor(Qt.PointingHandCursor)
+        self.help_btn.setToolTip("Справка")
+        self.help_btn.clicked.connect(self._open_help)
+
         layout.addWidget(brand)
         layout.addSpacing(8)
         layout.addWidget(subtitle)
         layout.addStretch()
+        layout.addWidget(self.help_btn)
         layout.addWidget(self.header_status)
 
         return header
@@ -252,8 +259,15 @@ class MainWindow(QMainWindow):
         footer_hint.setObjectName("sidebarFooterHint")
         footer_hint.setAlignment(Qt.AlignCenter)
 
+        self.credits_btn = QPushButton("👥 Авторство")
+        self.credits_btn.setObjectName("creditsBtn")
+        self.credits_btn.setCursor(Qt.PointingHandCursor)
+        self.credits_btn.setToolTip("Fork by InIProject — SkilinPur")
+        self.credits_btn.clicked.connect(self._show_credits)
+
         layout.addWidget(footer)
         layout.addWidget(footer_hint)
+        layout.addWidget(self.credits_btn)
 
         self.nav.currentRowChanged.connect(self._change_tab)
         self.nav.setCurrentRow(0)
@@ -271,7 +285,17 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(tab)
             if isinstance(tab, UpdateTab):
                 tab.go_to_tab.connect(lambda: self._change_tab(self._tabs.index(tab)))
+        # «Авторство» — отдельная вкладка вне меню, открывается из подвала
+        self.credits_tab = CreditsTab(self.zapret)
+        self._tabs.append(self.credits_tab)
+        self.stack.addWidget(self.credits_tab)
         return self.stack
+
+    def _open_help(self):
+        self.nav.setCurrentRow(len(NAV_ITEMS) - 1)
+
+    def _show_credits(self):
+        self.stack.setCurrentIndex(len(self._tabs) - 1)
 
     def _change_tab(self, row):
         if 0 <= row < len(self._tabs):

@@ -6,6 +6,7 @@
 import os
 import re
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -132,19 +133,57 @@ class Zapret:
     # ------------------------------------------------------------------
 
     def nfqws_running(self):
+        now = time.monotonic()
+        cached = getattr(self, "_nfqws_running_cache", (0.0, False))
+        if now - cached[0] < 1.5:
+            return cached[1]
         try:
             p = subprocess.run(["pgrep", "-f", "nfqws"], capture_output=True)
-            return p.returncode == 0
+            running = p.returncode == 0
         except FileNotFoundError:
-            return False
+            running = False
+        self._nfqws_running_cache = (now, running)
+        return running
 
     def nfqws_count(self):
+        now = time.monotonic()
+        cached = getattr(self, "_nfqws_count_cache", (0.0, 0))
+        if now - cached[0] < 1.5:
+            return cached[1]
         try:
             p = subprocess.run(["pgrep", "-f", "nfqws"],
                                capture_output=True, text=True)
-            return len([l for l in p.stdout.splitlines() if l.strip()])
+            count = len([l for l in p.stdout.splitlines() if l.strip()])
         except FileNotFoundError:
-            return 0
+            count = 0
+        self._nfqws_count_cache = (now, count)
+        return count
+
+    # --- Самопроверка / обслуживание ------------------------------------
+
+    def check_sites_cmd(self):
+        """Проверка доступности YouTube и Discord (bash + curl)."""
+        script = (
+            'for s in "youtube|https://www.youtube.com" '
+            '"discord|https://discord.com"; do '
+            'name="${s%%|*}"; url="${s#*|}"; '
+            'code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 "$url"); '
+            'if [ "$code" = "000" ]; then echo "✗ $name: нет ответа"; '
+            'else echo "✓ $name: HTTP $code"; fi; done; '
+            'echo "Готово."'
+        )
+        return [self.bash, "-c", script]
+
+    def clear_discord_cache_cmd(self):
+        """Очистка кэша Discord текущего пользователя."""
+        script = (
+            'for d in "$HOME/.config/discord/Cache" "$HOME/.config/discord/Code Cache" '
+            '"$HOME/.config/discord/GPUCache" "$HOME/.cache/discord"; do '
+            '[ -e "$d" ] && rm -rf "$d" && echo "очищено: $d"; done; '
+            'echo "Готово. Перезапустите Discord."'
+        )
+        return [self.bash, "-c", script]
+
 
     def init_system(self):
         try:
