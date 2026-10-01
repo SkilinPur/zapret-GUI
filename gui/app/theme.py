@@ -249,6 +249,24 @@ QPushButton#helpBtn:hover {
     color: #e53935;
 }
 
+QPushButton#modeToggleBtn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid #33333a;
+    background-color: #1a1a1e;
+    color: #9e9e9e;
+    font-weight: bold;
+}
+QPushButton#modeToggleBtn:hover {
+    border-color: #e53935;
+    color: #d1d1d1;
+}
+QPushButton#modeToggleBtn:checked {
+    background-color: rgba(229, 57, 53, 0.18);
+    border-color: #e53935;
+    color: #e53935;
+}
+
 QPushButton#creditsBtn {
     padding: 4px 6px;
     border-radius: 6px;

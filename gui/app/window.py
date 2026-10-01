@@ -31,6 +31,9 @@ NAV_ITEMS = [
     ("📖 Как пользоваться", HelpTab),
 ]
 
+# Вкладки, которые скрываются в «Простом» режиме
+ADVANCED_TABS = {ServiceTab, AutotuneTab, PermissionsTab}
+
 SIDEBAR_WIDTH = 190
 
 
@@ -47,6 +50,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("InIProject — Zapret Discord YouTube")
         self.resize(960, 640)
         self.setWindowIcon(make_icon())
+
+        # Режим интерфейса (простой/продвинутый) — из настроек
+        simple = QSettings().value("ui/simple_mode", False, type=bool)
+        self.mode_btn.blockSignals(True)
+        self.mode_btn.setChecked(simple)
+        self.mode_btn.blockSignals(False)
+        self._apply_mode()
 
         self._tray = install_tray(self)
 
@@ -226,10 +236,18 @@ class MainWindow(QMainWindow):
         self.help_btn.setToolTip("Справка")
         self.help_btn.clicked.connect(self._open_help)
 
+        self.mode_btn = QPushButton()
+        self.mode_btn.setObjectName("modeToggleBtn")
+        self.mode_btn.setCheckable(True)
+        self.mode_btn.setCursor(Qt.PointingHandCursor)
+        self.mode_btn.setToolTip("Простой режим скрывает технические вкладки")
+        self.mode_btn.toggled.connect(self._apply_mode)
+
         layout.addWidget(brand)
         layout.addSpacing(8)
         layout.addWidget(subtitle)
         layout.addStretch()
+        layout.addWidget(self.mode_btn)
         layout.addWidget(self.help_btn)
         layout.addWidget(self.header_status)
 
@@ -246,9 +264,6 @@ class MainWindow(QMainWindow):
 
         self.nav = QListWidget()
         self.nav.setObjectName("sidebarList")
-        for name, _ in NAV_ITEMS:
-            self.nav.addItem(f"{name}")
-
         layout.addWidget(self.nav, 1)
 
         footer = QLabel("InIProject")
@@ -270,7 +285,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.credits_btn)
 
         self.nav.currentRowChanged.connect(self._change_tab)
-        self.nav.setCurrentRow(0)
 
         return side
 
@@ -292,15 +306,37 @@ class MainWindow(QMainWindow):
         return self.stack
 
     def _open_help(self):
-        self.nav.setCurrentRow(len(NAV_ITEMS) - 1)
+        help_idx = [c for _, c in NAV_ITEMS].index(HelpTab)
+        try:
+            row = self._nav_stack.index(help_idx)
+            self.nav.setCurrentRow(row)
+        except ValueError:
+            pass
 
     def _show_credits(self):
         self.stack.setCurrentIndex(len(self._tabs) - 1)
 
+    def _apply_mode(self, *_):
+        simple = self.mode_btn.isChecked()
+        QSettings().setValue("ui/simple_mode", simple)
+        self.mode_btn.setText("🧭 Простой" if simple else "🧭 Продвинутый")
+        visible = [(n, c) for n, c in NAV_ITEMS
+                   if (not simple) or c not in ADVANCED_TABS]
+        classes = [c for _, c in NAV_ITEMS]
+        self._nav_stack = [classes.index(c) for _, c in visible]
+        self.nav.blockSignals(True)
+        self.nav.clear()
+        for name, _ in visible:
+            self.nav.addItem(name)
+        self.nav.blockSignals(False)
+        self.nav.setCurrentRow(0)
+
     def _change_tab(self, row):
-        if 0 <= row < len(self._tabs):
-            self.stack.setCurrentIndex(row)
-            tab = self._tabs[row]
+        nav = getattr(self, "_nav_stack", None)
+        idx = nav[row] if nav and 0 <= row < len(nav) else row
+        if 0 <= idx < len(self._tabs):
+            self.stack.setCurrentIndex(idx)
+            tab = self._tabs[idx]
             refresh = getattr(tab, "refresh_strategies", None)
             if refresh is not None:
                 refresh()
