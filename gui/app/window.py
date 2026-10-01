@@ -19,12 +19,14 @@ from .ui.help_tab import HelpTab
 from .ui.permissions_tab import PermissionsTab
 from .ui.service_tab import ServiceTab
 from .ui.status_tab import StatusTab
+from .ui.telegram_tab import TelegramTab
 from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
     ("🟢 Статус", StatusTab),
     ("⚙️ Настройки", ConfigTab),
     ("⬆️ Обновление", UpdateTab),
+    ("✈️ Telegram", TelegramTab),
     ("🛠️ Автозапуск", ServiceTab),
     ("🎯 Подбор способа", AutotuneTab),
     ("🔑 Без пароля", PermissionsTab),
@@ -39,6 +41,7 @@ NAV_HINTS = {
     StatusTab: "Запуск/остановка обхода и его состояние.",
     ConfigTab: "Способ обхода и дополнительные параметры.",
     UpdateTab: "Версии и обновление программы, ядра и стратегий.",
+    TelegramTab: "Локальный прокси Tg WS Proxy для Telegram Desktop.",
     ServiceTab: "Автозапуск при включении ПК, ярлык в меню.",
     AutotuneTab: "Автоматический подбор рабочего способа.",
     PermissionsTab: "Настройка работы без ввода пароля.",

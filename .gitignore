@@ -12,3 +12,5 @@ conf.env.backup
 auto_tune_results.txt
 gui/.venv
 __pycache__/
+tgws/
+.tgws-version

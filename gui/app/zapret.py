@@ -3,6 +3,7 @@
 # =============================================================================
 # Автор GUI: SkilinPur (https://github.com/SkilinPur) | Репозиторий: https://github.com/SkilinPur/zapret-GUI
 
+import json
 import os
 import re
 import subprocess
@@ -183,6 +184,77 @@ class Zapret:
             'echo "Готово. Перезапустите Discord."'
         )
         return [self.bash, "-c", script]
+
+    # --- Telegram (Tg WS Proxy) -----------------------------------------
+
+    def tg_dir(self):
+        return self.repo_root / "tgws"
+
+    def tg_bin(self):
+        return self.tg_dir() / "TgWsProxy"
+
+    def telegram_installed(self):
+        marker = self.repo_root / ".tgws-version"
+        if marker.exists():
+            return marker.read_text(encoding="utf-8").strip()
+        return "скачан" if self.tg_bin().exists() else ""
+
+    def telegram_download_cmd(self):
+        """Скачивает Tg WS Proxy (Linux-бинарник) из последнего релиза."""
+        dst = str(self.tg_bin())
+        script = (
+            f'mkdir -p "$(dirname "{dst}")"; '
+            'curl -fsSL -o "' + dst + '" '
+            '"https://github.com/Flowseal/tg-ws-proxy/releases/latest/download/TgWsProxy_linux_amd64" '
+            '&& chmod +x "' + dst + '" '
+            '&& echo "latest" > "' + str(self.repo_root / ".tgws-version") + '" '
+            '&& echo "✓ Tg WS Proxy установлен: ' + dst + '" '
+            '|| echo "! ошибка скачивания"'
+        )
+        return [self.bash, "-c", script]
+
+    def telegram_running(self):
+        try:
+            p = subprocess.run(["pgrep", "-f", "TgWsProxy"], capture_output=True)
+            return p.returncode == 0
+        except FileNotFoundError:
+            return False
+
+    def telegram_start(self):
+        if self.telegram_running():
+            return True
+        if not self.tg_bin().exists():
+            return False
+        try:
+            subprocess.Popen([str(self.tg_bin())])
+            return True
+        except Exception:
+            return False
+
+    def telegram_stop(self):
+        try:
+            subprocess.run(["pkill", "-f", "TgWsProxy"], capture_output=True)
+            return True
+        except FileNotFoundError:
+            return False
+
+    def telegram_config(self):
+        path = Path.home() / ".config" / "TgWsProxy" / "config.json"
+        if not path.exists():
+            return {}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def telegram_connect_link(self):
+        cfg = self.telegram_config()
+        host = cfg.get("host", "127.0.0.1")
+        port = cfg.get("port", 1443)
+        secret = cfg.get("secret", "")
+        if not secret:
+            return ""
+        return f"tg://proxy?server={host}&port={port}&secret={secret}"
 
 
     def init_system(self):
