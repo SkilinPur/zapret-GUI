@@ -68,11 +68,15 @@ class StatusTab(QWidget):
         mode_lbl = QLabel("Режим запуска:")
         mode_lbl.setProperty("section", True)
         self.mode_btns = []
-        for idx, text in enumerate(["Фоновый демон", "systemd-сервис"]):
+        for idx, (text, tip) in enumerate([
+            ("В фоне (рекомендуется)", "Запускается фоном и работает, пока открыта сессия."),
+            ("Как служба", "Запускается системной службой (systemd)."),
+        ]):
             btn = QPushButton(text)
             btn.setCheckable(True)
             btn.setProperty("modeBtn", True)
             btn.setCursor(Qt.PointingHandCursor)
+            btn.setToolTip(tip)
             btn.clicked.connect(lambda _=False, i=idx: self._on_mode_changed())
             self.mode_btns.append(btn)
             ml.addWidget(btn)
@@ -251,12 +255,12 @@ class StatusTab(QWidget):
         backend = cfg.get("firewall_backend", "auto")
 
         html = (
-            f'<span style="color:#9e9e9e;">&gt;_ стратегия:</span> '
+            f'<span style="color:#9e9e9e;">&gt;_ способ обхода:</span> '
             f'<span style="color:#e53935;">{strategy}</span><br>'
             f'<span style="color:#9e9e9e;">&gt;_ интерфейс:</span> {interface} &nbsp;|&nbsp; '
-            f'<span style="color:#9e9e9e;">gamefilter:</span> {gf} &nbsp;|&nbsp; '
-            f'<span style="color:#9e9e9e;">бэкенд:</span> {backend}<br>'
-            f'<span style="color:#9e9e9e;">&gt;_ nfqws:</span> {count} процес(с/са) '
+            f'<span style="color:#9e9e9e;">игры:</span> {gf} &nbsp;|&nbsp; '
+            f'<span style="color:#9e9e9e;">фаервол:</span> {backend}<br>'
+            f'<span style="color:#9e9e9e;">&gt;_ ядро:</span> {count} процес(с/са) '
             f'&nbsp;|&nbsp; <span style="color:#9e9e9e;">init:</span> {self.z.init_system()}'
         )
         self.config_label.setText(html)

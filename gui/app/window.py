@@ -23,16 +23,27 @@ from .ui.update_tab import UpdateTab
 
 NAV_ITEMS = [
     ("🟢 Статус", StatusTab),
-    ("⚙️ Конфигурация", ConfigTab),
+    ("⚙️ Настройки", ConfigTab),
     ("⬆️ Обновление", UpdateTab),
-    ("🛠️ Сервис", ServiceTab),
-    ("🎯 Автоподбор", AutotuneTab),
-    ("🔑 Права", PermissionsTab),
-    ("📖 Как пользоваться", HelpTab),
+    ("🛠️ Автозапуск", ServiceTab),
+    ("🎯 Подбор способа", AutotuneTab),
+    ("🔑 Без пароля", PermissionsTab),
+    ("📖 Справка", HelpTab),
 ]
 
 # Вкладки, которые скрываются в «Простом» режиме
 ADVANCED_TABS = {ServiceTab, AutotuneTab, PermissionsTab}
+
+# Словарик-подсказки для вкладок
+NAV_HINTS = {
+    StatusTab: "Запуск/остановка обхода и его состояние.",
+    ConfigTab: "Способ обхода и дополнительные параметры.",
+    UpdateTab: "Версии и обновление программы, ядра и стратегий.",
+    ServiceTab: "Автозапуск при включении ПК, ярлык в меню.",
+    AutotuneTab: "Автоматический подбор рабочего способа.",
+    PermissionsTab: "Настройка работы без ввода пароля.",
+    HelpTab: "Краткое руководство.",
+}
 
 SIDEBAR_WIDTH = 190
 
@@ -326,8 +337,11 @@ class MainWindow(QMainWindow):
         self._nav_stack = [classes.index(c) for _, c in visible]
         self.nav.blockSignals(True)
         self.nav.clear()
-        for name, _ in visible:
+        for name, cls in visible:
             self.nav.addItem(name)
+            item = self.nav.item(self.nav.count() - 1)
+            if item is not None and cls in NAV_HINTS:
+                item.setToolTip(NAV_HINTS[cls])
         self.nav.blockSignals(False)
         self.nav.setCurrentRow(0)
 

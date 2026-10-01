@@ -57,10 +57,16 @@ class ConfigTab(QWidget):
 
         self.interface_combo = QComboBox()
         self.interface_combo.addItems(self.z.interfaces())
+        self.interface_combo.setToolTip(
+            "Сетевой интерфейс, через который работает обход. Обычно не трогайте."
+        )
         al.addWidget(add_row("Сетевой интерфейс", self.interface_combo))
 
         self.backend_combo = QComboBox()
         self.backend_combo.addItems(["auto"] + self.z.backends())
+        self.backend_combo.setToolTip(
+            "Способ перехвата трафика (nftables/iptables). Обычно достаточно «auto»."
+        )
         al.addWidget(add_row("Брандмауэр (бэкенд)", self.backend_combo))
 
         gf_row = QWidget()
