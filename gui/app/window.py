@@ -6,6 +6,7 @@
 import os
 
 from PySide6.QtCore import QSettings, Qt, QTimer
+from PySide6.QtGui import QBrush, QColor, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QHBoxLayout, QLabel, QListWidget, QMainWindow, QPushButton,
     QStackedWidget, QSystemTrayIcon, QVBoxLayout, QWidget,
@@ -249,8 +250,17 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(18, 10, 18, 10)
         layout.setSpacing(12)
 
-        brand = QLabel("InIProject")
+        brand = QLabel()
         brand.setObjectName("brandLabel")
+        logo_path = self.zapret.repo_root / "docs" / "logo.png"
+        if logo_path.exists():
+            pm = QPixmap(str(logo_path))
+            if not pm.isNull():
+                brand.setPixmap(pm.scaledToHeight(24, Qt.SmoothTransformation))
+            else:
+                brand.setText("InIProject")
+        else:
+            brand.setText("InIProject")
 
         subtitle = QLabel("Zapret Discord YouTube — обход замедления")
         subtitle.setObjectName("subtitleLabel")
@@ -326,11 +336,29 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(tab)
             if isinstance(tab, UpdateTab):
                 tab.go_to_tab.connect(lambda: self._change_tab(self._tabs.index(tab)))
+                tab.has_update.connect(self._set_update_badge)
         # «Авторство» — отдельная вкладка вне меню, открывается из подвала
         self.credits_tab = CreditsTab(self.zapret)
         self._tabs.append(self.credits_tab)
         self.stack.addWidget(self.credits_tab)
         return self.stack
+
+    def _set_update_badge(self, available):
+        upd_idx = [c for _, c in NAV_ITEMS].index(UpdateTab)
+        try:
+            row = self._nav_stack.index(upd_idx)
+        except (ValueError, AttributeError):
+            return
+        item = self.nav.item(row)
+        if item is None:
+            return
+        base = [n for n, _ in NAV_ITEMS][upd_idx]
+        if available:
+            item.setText(base + "  ●")
+            item.setForeground(QBrush(QColor("#e53935")))
+        else:
+            item.setText(base)
+            item.setForeground(QBrush())
 
     def _open_help(self):
         help_idx = [c for _, c in NAV_ITEMS].index(HelpTab)

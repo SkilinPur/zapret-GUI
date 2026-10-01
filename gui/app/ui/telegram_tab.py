@@ -110,6 +110,7 @@ class TelegramTab(QWidget):
             return
         if self.z.telegram_start():
             self.append_log("> запущен Tg WS Proxy (откроется окно настроек)")
+            self._toast("Tg WS Proxy запущен", "success")
         else:
             self.append_log("! не скачан — нажмите «Скачать/обновить»")
         self.refresh()
@@ -117,12 +118,19 @@ class TelegramTab(QWidget):
     def _stop(self):
         self.z.telegram_stop()
         self.append_log("> Tg WS Proxy остановлен")
+        self._toast("Tg WS Proxy остановлен", "info")
         self.refresh()
 
     def _on_done(self, _):
         self.update_btn.setEnabled(True)
         self.append_log("> готово")
+        self._toast("Tg WS Proxy установлен", "success")
         self.refresh()
+
+    def _toast(self, text, kind="info"):
+        w = self.window()
+        if hasattr(w, "show_toast"):
+            w.show_toast(text, kind)
 
     def _open_telegram(self):
         import webbrowser

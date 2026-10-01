@@ -128,6 +128,9 @@ class PermissionsTab(QWidget):
         self.setup_btn.setEnabled(True)
         self.append_log("> настройка завершена")
         self.refresh_status()
+        w = self.window()
+        if hasattr(w, "show_toast"):
+            w.show_toast("Работа без пароля настроена", "success")
 
     def _on_failed(self, msg):
         self.setup_btn.setEnabled(True)

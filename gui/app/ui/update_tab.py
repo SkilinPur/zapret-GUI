@@ -30,6 +30,7 @@ def _short(rev):
 
 class UpdateTab(QWidget):
     go_to_tab = Signal()
+    has_update = Signal(bool)
 
     def __init__(self, zapret, parent=None):
         super().__init__(parent)
@@ -302,10 +303,13 @@ class UpdateTab(QWidget):
         if is_newer(tag):
             self._prepend_new_version(tag, notes)
             self.program_status.setText(f"✓ доступна новая версия {tag}")
+            self.has_update.emit(True)
+            self._toast(f"Доступна новая версия {tag}", "info")
             if show_dialog:
                 self._show_update_dialog()
         else:
             self.program_status.setText("✓ актуальная версия")
+            self.has_update.emit(False)
         self._update_availability()
         self._maybe_hide_progress()
 
@@ -432,14 +436,21 @@ class UpdateTab(QWidget):
     def _on_step_done(self, which):
         name = {"core": "ядро nfqws", "strat": "стратегии"}[which]
         self.append_log(f"> {name}: обновлено")
+        self._toast(f"{name.capitalize()} обновлено", "success")
         self._next_step()
 
     def _on_program_done(self):
         self.append_log("> обновление программы завершено. Перезапустите приложение")
         self.program_status.setText("✓ обновление установлено. Перезапустите приложение")
+        self._toast("Обновление установлено — перезапустите", "success")
         self._next_step()
         if self._ask_restart():
             self._restart_app()
+
+    def _toast(self, text, kind="info"):
+        w = self.window()
+        if hasattr(w, "show_toast"):
+            w.show_toast(text, kind)
 
     def _on_step_failed(self, msg):
         self.append_log(f"! ошибка: {msg}")
