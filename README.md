@@ -12,6 +12,7 @@
 [![UI](https://img.shields.io/badge/UI-PySide6-41cd52)]()
 [![Ядро](https://img.shields.io/badge/ядро-nfqws%20(zapret)-informational)]()
 [![Стратегии](https://img.shields.io/badge/стратегии-Flowseal-red)]()
+[![Fork by](https://img.shields.io/badge/Fork%20by-InIProject%20%E2%80%94%20SkilinPur-8b5cf6)](https://github.com/SkilinPur/zapret-GUI)
 
 </div>
 

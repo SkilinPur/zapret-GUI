@@ -106,6 +106,9 @@ class CreditsTab(QWidget):
 
         intro = make_card()
         il = intro.layout()
+        brand = QLabel("Fork by InIProject — SkilinPur")
+        brand.setProperty("title", True)
+        il.addWidget(brand)
         desc = QLabel(
             "<p>Этот GUI является обёрткой вокруг "
             + _link("zapret-discord-youtube-linux",
