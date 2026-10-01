@@ -45,6 +45,7 @@ class UserListsTab(QWidget):
 
         self.editor = QPlainTextEdit()
         self.editor.setObjectName("logView")
+        self.editor.setPlaceholderText("Один адрес на строку (домен или IP/CIDR)…")
         cl.addWidget(self.editor, 1)
 
         row = QWidget()

@@ -122,6 +122,7 @@ class ConfigTab(QWidget):
         self.log_view.setObjectName("logView")
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumBlockCount(500)
+        self.log_view.setPlaceholderText("Здесь появится вывод сохранения…")
         ll.addWidget(self.log_view, 1)
         root.addWidget(log_card, 1)
 

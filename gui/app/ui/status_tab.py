@@ -121,6 +121,7 @@ class StatusTab(QWidget):
         self.log_view.setObjectName("logView")
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumBlockCount(3000)
+        self.log_view.setPlaceholderText("Здесь появится журнал запуска и вывода…")
         ll.addWidget(self.log_view, 1)
 
         root.addWidget(log_card, 1)

@@ -79,6 +79,7 @@ class TelegramTab(QWidget):
         self.log_view.setObjectName("logView")
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumBlockCount(2000)
+        self.log_view.setPlaceholderText("Здесь появится журнал Tg WS Proxy…")
         ll.addWidget(self.log_view, 1)
         root.addWidget(log_card, 1)
 

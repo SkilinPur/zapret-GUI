@@ -9,7 +9,8 @@ import sys
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QComboBox, QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QVBoxLayout, QWidget,
+    QComboBox, QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QProgressBar,
+    QVBoxLayout, QWidget,
 )
 
 from ..changelog import changelog_versions
@@ -68,6 +69,13 @@ class UpdateTab(QWidget):
         tl.addStretch()
         tl.addWidget(self.update_all_btn)
         root.addWidget(top_row)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+        self.progress.setTextVisible(False)
+        self.progress.setFixedHeight(6)
+        self.progress.setVisible(False)
+        root.addWidget(self.progress)
 
         # --- Модуль: программа ------------------------------------------
         prog_card = make_card()
@@ -174,6 +182,7 @@ class UpdateTab(QWidget):
         self.log_view.setObjectName("logView")
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumBlockCount(500)
+        self.log_view.setPlaceholderText("Здесь появится вывод обновления")
         ll.addWidget(self.log_view, 1)
         root.addWidget(log_card, 1)
 
@@ -260,6 +269,9 @@ class UpdateTab(QWidget):
     def check_now(self, show_dialog=False):
         if self._checker and self._checker.isRunning():
             return
+        self._check_done = False
+        self._comp_done = False
+        self.progress.setVisible(True)
         self.program_status.setText("> проверка…")
         self._start_components_check()
         self._checker = CheckWorker(parent=self)
@@ -273,10 +285,16 @@ class UpdateTab(QWidget):
         self._comp_worker.result.connect(self._on_components)
         self._comp_worker.start()
 
+    def _maybe_hide_progress(self):
+        if getattr(self, "_check_done", False) and getattr(self, "_comp_done", False):
+            self.progress.setVisible(False)
+
     def _on_check(self, res, show_dialog):
+        self._check_done = True
         tag, notes, error = res
         if error:
             self.program_status.setText(f"! не удалось проверить обновления: {error}")
+            self._maybe_hide_progress()
             return
         self.latest_tag = tag
         self.latest_notes = notes
@@ -289,18 +307,22 @@ class UpdateTab(QWidget):
         else:
             self.program_status.setText("✓ актуальная версия")
         self._update_availability()
+        self._maybe_hide_progress()
 
     def _on_components(self, res):
+        self._comp_done = True
         zapret_tag, flowseal_head, error = res
         if error:
             self.core_status.setText(f"! {error}")
             self.strat_status.setText(f"! {error}")
+            self._maybe_hide_progress()
             return
         self._comp_zapret = zapret_tag
         self._comp_flowseal = flowseal_head
         self.core_latest_value.setText(zapret_tag or "—")
         self.strat_latest_value.setText(_short(flowseal_head) if flowseal_head else "—")
         self._update_availability()
+        self._maybe_hide_progress()
 
     # ------------------------------------------------------------------
     # Changelog

@@ -90,9 +90,10 @@ QMainWindow, #rootWidget {
 }
 
 #sidebarList::item:selected {
-    color: #e53935;
-    background-color: rgba(229, 57, 53, 0.15);
+    color: #ffffff;
+    background-color: rgba(229, 57, 53, 0.28);
     border-left: 3px solid #e53935;
+    font-weight: bold;
 }
 
 #sidebarFooter {
