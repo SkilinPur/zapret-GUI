@@ -261,11 +261,9 @@ class MainWindow(QMainWindow):
         self.header_status = QLabel("●")
         self.header_status.setObjectName("headerStatus")
 
-        self.help_btn = QPushButton("?")
-        self.help_btn.setObjectName("helpBtn")
-        self.help_btn.setFixedSize(30, 30)
+        self.help_btn = QPushButton("Справка")
         self.help_btn.setCursor(Qt.PointingHandCursor)
-        self.help_btn.setToolTip("Справка")
+        self.help_btn.setToolTip("Открыть справку")
         self.help_btn.clicked.connect(self._open_help)
 
         self.theme_btn = QPushButton("Тема")
@@ -381,7 +379,7 @@ class MainWindow(QMainWindow):
     def _apply_mode(self, *_):
         simple = self.mode_btn.isChecked()
         QSettings().setValue("ui/simple_mode", simple)
-        self.mode_btn.setText("🧭 Простой" if simple else "🧭 Продвинутый")
+        self.mode_btn.setText("Простой" if simple else "Продвинутый")
         visible = [(n, c) for n, c in NAV_ITEMS
                    if (not simple) or c not in ADVANCED_TABS]
         classes = [c for _, c in NAV_ITEMS]
