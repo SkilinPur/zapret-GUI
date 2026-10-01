@@ -162,7 +162,8 @@ QPushButton {
     color: #d1d1d1;
     border: 1px solid #33333a;
     border-radius: 8px;
-    padding: 9px 18px;
+    padding: 8px 18px;
+    min-height: 34px;
     font-size: 14px;
     font-weight: bold;
 }
@@ -299,6 +300,23 @@ QTabBar::tab:selected {
     background: #26262b;
     color: #e53935;
     border-color: #e53935;
+}
+
+QLabel#toast {
+    background-color: rgba(20, 20, 23, 0.95);
+    border: 1px solid #33333a;
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: #d1d1d1;
+    font-size: 13px;
+}
+QLabel#toast[kind="success"] {
+    border-color: #66bb6a;
+    color: #d7f5da;
+}
+QLabel#toast[kind="error"] {
+    border-color: #e53935;
+    color: #ffd7d7;
 }
 
 /* ---------- Поля и выбор ---------- */
@@ -507,3 +525,29 @@ QToolTip {
 }
 """
 
+
+
+# Светлая тема — грубая генерация заменой тёмных цветов на светлые.
+_LIGHT_MAP = {
+    "#0a0a0c": "#ffffff",
+    "#101013": "#f2f3f7",
+    "#141417": "#ffffff",
+    "#1a1a1e": "#eceef3",
+    "#222226": "#e2e4ea",
+    "#2a2a2e": "#d7d9df",
+    "#26262b": "#d3d5db",
+    "#33333a": "#c0c2ca",
+    "#9e9e9e": "#5a5d66",
+    "#d1d1d1": "#2b2e33",
+    "#616161": "#8a8d94",
+}
+
+
+def build_qss(theme="dark"):
+    """QSS для темы. 'dark' (по умолчанию) или 'light'."""
+    if theme == "light":
+        s = QSS
+        for k, v in _LIGHT_MAP.items():
+            s = s.replace(k, v)
+        return s
+    return QSS

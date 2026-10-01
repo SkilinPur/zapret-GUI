@@ -7,12 +7,13 @@ import os
 
 from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QListWidget, QMainWindow, QPushButton, QStackedWidget,
-    QSystemTrayIcon, QVBoxLayout, QWidget,
+    QApplication, QHBoxLayout, QLabel, QListWidget, QMainWindow, QPushButton,
+    QStackedWidget, QSystemTrayIcon, QVBoxLayout, QWidget,
 )
 
 from .zapret import Zapret, log_to_file
 from .tray import install_tray, make_icon, make_led_icon
+from .theme import build_qss
 from .worker import CommandWorker, DaemonWorker
 from .ui.autotune_tab import AutotuneTab
 from .ui.config_tab import ConfigTab
@@ -74,6 +75,12 @@ class MainWindow(QMainWindow):
         self.mode_btn.blockSignals(False)
         self._apply_mode()
 
+        # Тост-уведомления
+        self.toast = QLabel(self)
+        self.toast.setObjectName("toast")
+        self.toast.setWordWrap(True)
+        self.toast.hide()
+
         self._tray = install_tray(self)
 
         # Мастер первого запуска
@@ -130,6 +137,7 @@ class MainWindow(QMainWindow):
         # Уведомление о падении nfqws
         if self._was_running is True and not running:
             log_to_file("nfqws перестал работать")
+            self.show_toast("Обход остановлен", "info")
             if self._tray is not None:
                 self._tray.showMessage(
                     "Zapret Discord YouTube",
@@ -137,6 +145,8 @@ class MainWindow(QMainWindow):
                     QSystemTrayIcon.Warning,
                     4000,
                 )
+        elif self._was_running is False and running:
+            self.show_toast("Обход включён", "success")
         self._was_running = running
 
         if self._tray is not None:
@@ -256,6 +266,13 @@ class MainWindow(QMainWindow):
         self.help_btn.setToolTip("Справка")
         self.help_btn.clicked.connect(self._open_help)
 
+        self.theme_btn = QPushButton("🌓")
+        self.theme_btn.setObjectName("helpBtn")
+        self.theme_btn.setFixedSize(30, 30)
+        self.theme_btn.setCursor(Qt.PointingHandCursor)
+        self.theme_btn.setToolTip("Тема: тёмная/светлая")
+        self.theme_btn.clicked.connect(self._toggle_theme)
+
         self.mode_btn = QPushButton()
         self.mode_btn.setObjectName("modeToggleBtn")
         self.mode_btn.setCheckable(True)
@@ -267,6 +284,7 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         layout.addWidget(subtitle)
         layout.addStretch()
+        layout.addWidget(self.theme_btn)
         layout.addWidget(self.mode_btn)
         layout.addWidget(self.help_btn)
         layout.addWidget(self.header_status)
@@ -335,6 +353,28 @@ class MainWindow(QMainWindow):
 
     def _show_credits(self):
         self.stack.setCurrentIndex(len(self._tabs) - 1)
+
+    def _toggle_theme(self):
+        cur = QSettings().value("ui/theme", "dark")
+        new = "light" if cur != "light" else "dark"
+        QSettings().setValue("ui/theme", new)
+        QApplication.instance().setStyleSheet(build_qss(new))
+
+    def show_toast(self, text, kind="info"):
+        self.toast.setProperty("kind", kind)
+        self.toast.setText(text)
+        self.toast.setFixedWidth(240)
+        self.toast.adjustSize()
+        cw = self.centralWidget()
+        if cw is not None:
+            x = cw.width() - self.toast.width() - 24
+            y = cw.height() - self.toast.height() - 24
+            self.toast.move(max(0, x), max(0, y))
+        self.toast.raise_()
+        self.toast.show()
+        self.toast.style().unpolish(self.toast)
+        self.toast.style().polish(self.toast)
+        QTimer.singleShot(3000, self.toast.hide)
 
     def _apply_mode(self, *_):
         simple = self.mode_btn.isChecked()

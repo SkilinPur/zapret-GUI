@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.png" alt="InIProject — Zapret Discord YouTube" width="420"/>
+
 # ⚡ zapret-GUI — Linux
 
 ### Графический интерфейс для обхода замедления YouTube и Discord

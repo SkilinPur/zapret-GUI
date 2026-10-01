@@ -195,8 +195,14 @@ class ConfigTab(QWidget):
         )
         self._worker.output.connect(self.append_log)
         self._worker.failed.connect(lambda msg: self.append_log(f"! {msg}"))
-        self._worker.success.connect(lambda _: self.append_log("> конфигурация сохранена"))
+        self._worker.success.connect(self._on_saved)
         self._worker.start()
+
+    def _on_saved(self, _):
+        self.append_log("> конфигурация сохранена")
+        w = self.window()
+        if hasattr(w, "show_toast"):
+            w.show_toast("Настройки сохранены", "success")
 
     def append_log(self, text):
         log_line(self.log_view, text)

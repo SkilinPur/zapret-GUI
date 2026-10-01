@@ -87,3 +87,7 @@ class UserListsTab(QWidget):
         self.save_btn.setEnabled(True)
         self.status.setText(msg)
         self._worker = None
+        if msg.startswith("✓"):
+            w = self.window()
+            if hasattr(w, "show_toast"):
+                w.show_toast("Список сохранён", "success")
