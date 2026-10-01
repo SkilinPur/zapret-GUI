@@ -16,9 +16,8 @@ from .ui.autotune_tab import AutotuneTab
 from .ui.config_tab import ConfigTab
 from .ui.credits_tab import CreditsTab
 from .ui.help_tab import HelpTab
-from .ui.permissions_tab import PermissionsTab
-from .ui.service_tab import ServiceTab
 from .ui.status_tab import StatusTab
+from .ui.system_tab import SystemTab
 from .ui.telegram_tab import TelegramTab
 from .ui.update_tab import UpdateTab
 from .ui.user_lists_tab import UserListsTab
@@ -28,15 +27,14 @@ NAV_ITEMS = [
     ("⚙️ Настройки", ConfigTab),
     ("⬆️ Обновление", UpdateTab),
     ("✈️ Telegram", TelegramTab),
-    ("🛠️ Автозапуск", ServiceTab),
+    ("🛠️ Система", SystemTab),
     ("🎯 Подбор способа", AutotuneTab),
-    ("🔑 Без пароля", PermissionsTab),
     ("📝 Списки", UserListsTab),
     ("📖 Справка", HelpTab),
 ]
 
 # Вкладки, которые скрываются в «Простом» режиме
-ADVANCED_TABS = {ServiceTab, AutotuneTab, PermissionsTab, UserListsTab}
+ADVANCED_TABS = {SystemTab, AutotuneTab, UserListsTab}
 
 # Словарик-подсказки для вкладок
 NAV_HINTS = {
@@ -44,9 +42,8 @@ NAV_HINTS = {
     ConfigTab: "Способ обхода и дополнительные параметры.",
     UpdateTab: "Версии и обновление программы, ядра и стратегий.",
     TelegramTab: "Локальный прокси Tg WS Proxy для Telegram Desktop.",
-    ServiceTab: "Автозапуск при включении ПК, ярлык в меню.",
+    SystemTab: "Автозапуск при включении ПК и работа без пароля.",
     AutotuneTab: "Автоматический подбор рабочего способа.",
-    PermissionsTab: "Настройка работы без ввода пароля.",
     UserListsTab: "Свои домены/IP для обхода и исключений.",
     HelpTab: "Краткое руководство.",
 }

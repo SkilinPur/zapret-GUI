@@ -280,6 +280,26 @@ QPushButton#creditsBtn:hover {
     color: #e53935;
 }
 
+QTabWidget::pane {
+    border: 1px solid #26262b;
+    border-radius: 8px;
+    background: #0a0a0c;
+}
+QTabBar::tab {
+    background: #1a1a1e;
+    color: #9e9e9e;
+    padding: 8px 16px;
+    border: 1px solid #33333a;
+    border-bottom: none;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+QTabBar::tab:selected {
+    background: #26262b;
+    color: #e53935;
+    border-color: #e53935;
+}
+
 /* ---------- Поля и выбор ---------- */
 QLineEdit, QComboBox, QPlainTextEdit {
     background-color: #0a0a0c;
