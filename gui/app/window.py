@@ -74,6 +74,8 @@ class MainWindow(QMainWindow):
         self.mode_btn.setChecked(simple)
         self.mode_btn.blockSignals(False)
         self._apply_mode()
+        theme = QSettings().value("ui/theme", "dark")
+        self.theme_btn.setText("Тема: светлая" if theme == "light" else "Тема: тёмная")
 
         # Тост-уведомления
         self.toast = QLabel(self)
@@ -266,11 +268,10 @@ class MainWindow(QMainWindow):
         self.help_btn.setToolTip("Справка")
         self.help_btn.clicked.connect(self._open_help)
 
-        self.theme_btn = QPushButton("🌓")
-        self.theme_btn.setObjectName("helpBtn")
-        self.theme_btn.setFixedSize(30, 30)
+        self.theme_btn = QPushButton("Тема")
+        self.theme_btn.setObjectName("modeToggleBtn")
         self.theme_btn.setCursor(Qt.PointingHandCursor)
-        self.theme_btn.setToolTip("Тема: тёмная/светлая")
+        self.theme_btn.setToolTip("Переключить тёмную/светлую тему")
         self.theme_btn.clicked.connect(self._toggle_theme)
 
         self.mode_btn = QPushButton()
@@ -359,6 +360,7 @@ class MainWindow(QMainWindow):
         new = "light" if cur != "light" else "dark"
         QSettings().setValue("ui/theme", new)
         QApplication.instance().setStyleSheet(build_qss(new))
+        self.theme_btn.setText("Тема: светлая" if new == "light" else "Тема: тёмная")
 
     def show_toast(self, text, kind="info"):
         self.toast.setProperty("kind", kind)
