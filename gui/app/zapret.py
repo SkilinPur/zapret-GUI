@@ -256,6 +256,41 @@ class Zapret:
             return ""
         return f"tg://proxy?server={host}&port={port}&secret={secret}"
 
+    # --- Пользовательские списки (user-lists) ----------------------------
+
+    USER_LISTS = [
+        ("general", "Обход (домены)", "list-general-user.txt"),
+        ("exclude", "Исключения (домены)", "list-exclude-user.txt"),
+        ("ipset_exclude", "Исключения (IP)", "ipset-exclude-user.txt"),
+    ]
+
+    def user_lists_dir(self):
+        return self.repo_root / "user-lists"
+
+    def user_lists_info(self):
+        d = self.user_lists_dir()
+        return [(k, label, d / fname) for k, label, fname in self.USER_LISTS]
+
+    def _user_list_path(self, key):
+        for k, _label, fname in self.USER_LISTS:
+            if k == key:
+                return self.user_lists_dir() / fname
+        return None
+
+    def read_user_list(self, key):
+        path = self._user_list_path(key)
+        if path and path.exists():
+            try:
+                return path.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                return ""
+        return ""
+
+    def save_user_list_cmd(self, key):
+        path = self._user_list_path(key)
+        # cat > "$1" с stdin — пишем через sudo (файлы могут быть root-owned)
+        return ["bash", "-c", 'cat > "$1"', "_", str(path)]
+
 
     def init_system(self):
         try:

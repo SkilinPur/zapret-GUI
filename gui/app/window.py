@@ -21,6 +21,7 @@ from .ui.service_tab import ServiceTab
 from .ui.status_tab import StatusTab
 from .ui.telegram_tab import TelegramTab
 from .ui.update_tab import UpdateTab
+from .ui.user_lists_tab import UserListsTab
 
 NAV_ITEMS = [
     ("🟢 Статус", StatusTab),
@@ -30,11 +31,12 @@ NAV_ITEMS = [
     ("🛠️ Автозапуск", ServiceTab),
     ("🎯 Подбор способа", AutotuneTab),
     ("🔑 Без пароля", PermissionsTab),
+    ("📝 Списки", UserListsTab),
     ("📖 Справка", HelpTab),
 ]
 
 # Вкладки, которые скрываются в «Простом» режиме
-ADVANCED_TABS = {ServiceTab, AutotuneTab, PermissionsTab}
+ADVANCED_TABS = {ServiceTab, AutotuneTab, PermissionsTab, UserListsTab}
 
 # Словарик-подсказки для вкладок
 NAV_HINTS = {
@@ -45,6 +47,7 @@ NAV_HINTS = {
     ServiceTab: "Автозапуск при включении ПК, ярлык в меню.",
     AutotuneTab: "Автоматический подбор рабочего способа.",
     PermissionsTab: "Настройка работы без ввода пароля.",
+    UserListsTab: "Свои домены/IP для обхода и исключений.",
     HelpTab: "Краткое руководство.",
 }
 
