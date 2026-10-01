@@ -425,6 +425,10 @@ class MainWindow(QMainWindow):
 
     def quit_from_tray(self):
         self._really_quit = True
+        # Скрываем иконку трея — иначе она держит приложение живым после
+        # закрытия последнего окна, и программа не завершается.
+        if self._tray is not None:
+            self._tray.hide()
         self.close()
 
     def closeEvent(self, event):
@@ -452,6 +456,8 @@ class MainWindow(QMainWindow):
         if self._auto_check_timer is not None:
             self._auto_check_timer.stop()
             self._auto_check_timer = None
+        if self._tray is not None:
+            self._tray.hide()
         event.accept()
 
     @staticmethod
