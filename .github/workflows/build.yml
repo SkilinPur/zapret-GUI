@@ -1,0 +1,31 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Установка зависимостей
+        run: |
+          pip install --upgrade pip
+          pip install PySide6
+
+      - name: Компиляция (py_compile)
+        run: |
+          python -m py_compile gui/app/*.py gui/app/ui/*.py
+
+      - name: Smoke (offscreen-сборка окна + скриншоты)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python tools/screenshots.py /tmp/shots
+          ls -la /tmp/shots
