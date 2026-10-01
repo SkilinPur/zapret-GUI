@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
 
 from .zapret import Zapret, log_to_file
 from .tray import install_tray, make_icon, make_led_icon
-from .theme import build_qss
 from .worker import CommandWorker, DaemonWorker
 from .ui.autotune_tab import AutotuneTab
 from .ui.config_tab import ConfigTab
@@ -74,8 +73,6 @@ class MainWindow(QMainWindow):
         self.mode_btn.setChecked(simple)
         self.mode_btn.blockSignals(False)
         self._apply_mode()
-        theme = QSettings().value("ui/theme", "dark")
-        self.theme_btn.setText("Тема: светлая" if theme == "light" else "Тема: тёмная")
 
         # Тост-уведомления
         self.toast = QLabel(self)
@@ -266,12 +263,6 @@ class MainWindow(QMainWindow):
         self.help_btn.setToolTip("Открыть справку")
         self.help_btn.clicked.connect(self._open_help)
 
-        self.theme_btn = QPushButton("Тема")
-        self.theme_btn.setObjectName("modeToggleBtn")
-        self.theme_btn.setCursor(Qt.PointingHandCursor)
-        self.theme_btn.setToolTip("Переключить тёмную/светлую тему")
-        self.theme_btn.clicked.connect(self._toggle_theme)
-
         self.mode_btn = QPushButton()
         self.mode_btn.setObjectName("modeToggleBtn")
         self.mode_btn.setCheckable(True)
@@ -283,7 +274,6 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         layout.addWidget(subtitle)
         layout.addStretch()
-        layout.addWidget(self.theme_btn)
         layout.addWidget(self.mode_btn)
         layout.addWidget(self.help_btn)
         layout.addWidget(self.header_status)
@@ -352,13 +342,6 @@ class MainWindow(QMainWindow):
 
     def _show_credits(self):
         self.stack.setCurrentIndex(len(self._tabs) - 1)
-
-    def _toggle_theme(self):
-        cur = QSettings().value("ui/theme", "dark")
-        new = "light" if cur != "light" else "dark"
-        QSettings().setValue("ui/theme", new)
-        QApplication.instance().setStyleSheet(build_qss(new))
-        self.theme_btn.setText("Тема: светлая" if new == "light" else "Тема: тёмная")
 
     def show_toast(self, text, kind="info"):
         self.toast.setProperty("kind", kind)

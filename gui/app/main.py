@@ -9,10 +9,9 @@
 import os
 import sys
 
-from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from .theme import build_qss
+from .theme import QSS
 from .window import MainWindow
 
 
@@ -22,8 +21,7 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Zapret Discord YouTube")
     app.setOrganizationName("InIProject")
-    theme = QSettings().value("ui/theme", "dark")
-    app.setStyleSheet(build_qss(theme))
+    app.setStyleSheet(QSS)
 
     win = MainWindow()
     win.show()

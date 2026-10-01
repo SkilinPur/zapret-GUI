@@ -524,30 +524,3 @@ QToolTip {
     padding: 4px;
 }
 """
-
-
-
-# Светлая тема — грубая генерация заменой тёмных цветов на светлые.
-_LIGHT_MAP = {
-    "#0a0a0c": "#ffffff",
-    "#101013": "#f2f3f7",
-    "#141417": "#ffffff",
-    "#1a1a1e": "#eceef3",
-    "#222226": "#e2e4ea",
-    "#2a2a2e": "#d7d9df",
-    "#26262b": "#d3d5db",
-    "#33333a": "#c0c2ca",
-    "#9e9e9e": "#5a5d66",
-    "#d1d1d1": "#2b2e33",
-    "#616161": "#8a8d94",
-}
-
-
-def build_qss(theme="dark"):
-    """QSS для темы. 'dark' (по умолчанию) или 'light'."""
-    if theme == "light":
-        s = QSS
-        for k, v in _LIGHT_MAP.items():
-            s = s.replace(k, v)
-        return s
-    return QSS
